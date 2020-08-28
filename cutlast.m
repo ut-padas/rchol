@@ -31,11 +31,13 @@ separator = zeros(1, size(give, 1));
 separator(sep) = 1;
 separator = separator(p_vec);
 result_idx = [0 cumsum(val)];
+%{
 save('../128/give.mat', 'give');
 save('../128/separator.mat', 'separator');
 save('../128/val.mat', 'val');
 save('../128/result_idx.mat', 'result_idx');
 save('../128/p_vec.mat', 'p_vec');
+%}
 b = rand(size(original, 1), 1);
 %b = b - mean(b);
 if is_sddm == 0
@@ -44,7 +46,7 @@ end
 c = [b; -sum(b)];
 d = c;
 c = c(p_vec);
-save('../128/rightside.mat', 'c');
+% save('../128/rightside.mat', 'c');
 c = d;
 
 % testing vectors
