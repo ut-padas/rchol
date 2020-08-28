@@ -1,0 +1,2 @@
+LD_PRELOAD=/opt/apps/gcc/8.3.0/lib64/libstdc++.so.6 matlab
+
