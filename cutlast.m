@@ -1,5 +1,6 @@
+% decide whether the problem is sddm and generate problem
 is_sddm = 1;
-n = 32;
+n = 64;
 dim = 5;
 %original = Problem.A;
 original = laplace_3d(n + 1);
@@ -10,107 +11,46 @@ if is_sddm == 0
 else
     test = convert2singular(original);
 end
-%
+
+
+% calculate separator indices
 graphtest = test - diag(diag(test));
 logic = (graphtest ~= 0);
 index = 1 : length(graphtest);
 tic;
-[p_vec, val, sep] = recursive_separator1(logic, 1, 1);
+[p_vec, val, ~] = recursive_separator1(logic, 1, 1);
 toc;
-
-%p_vec = amd(test);
-%p_vec = randperm(size(test, 1));
-
 idx = find(p_vec == size(test, 1));
 p_vec(idx) = p_vec(end);
 p_vec(end) = size(test, 1);
-
-
 give = tril(test(p_vec, p_vec)) * -1;
-separator = zeros(1, size(give, 1));
-separator(sep) = 1;
-separator = separator(p_vec);
 result_idx = [0 cumsum(val)];
-%{
-save('../128/give.mat', 'give');
-save('../128/separator.mat', 'separator');
-save('../128/val.mat', 'val');
-save('../128/result_idx.mat', 'result_idx');
-save('../128/p_vec.mat', 'p_vec');
-%}
+
+
+
+% testing right side vectors
 b = rand(size(original, 1), 1);
-%b = b - mean(b);
 if is_sddm == 0
     b = [b; -b];
 end
-c = [b; -sum(b)];
-d = c;
-c = c(p_vec);
-% save('../128/rightside.mat', 'c');
-c = d;
 
-% testing vectors
-%{
-L1 = load('../128/lower.mat', '-mat', 'lower');
-D1 = load('../128/diag.mat', '-mat', 'diag');
-L1 = L1.lower;
-D1 = D1.diag;
-%}
+
+% calculate the preconditioner, convert it back to sddm
 [D1, L1] = matlab_solve(give, result_idx, 1);
-
 lastrow = nnz(L1(end, :));
 L1 = L1(1 : end - 1, 1 : end - 1);
 D1 = D1(1 : end - 1);
 
-% matlab incomplete
-%{
-iC = ichol(test(p_vec, p_vec), struct('type', 'ict', 'droptol', 0.07e-2));
-density_iC = 2*nnz(iC)/nnz(test)
-x = pcg(test(p_vec, p_vec),c(p_vec, :),1e-10,1000,iC,iC',[]);
-P = speye(size(test, 1));
-P = P(p_vec, :)';
-x = P * x;
-x = x(1 : size(b, 1)) - x(size(b, 1) + 1) * ones(size(b, 1), 1);
-if is_sddm == 0
-    disp("matlab incomplete: " + norm(original*x(1 : length(x) / 2)-b(1 : length(x) / 2)) / norm(b(1 : length(x) / 2)));
-else
-    disp("matlab incomplete: " + norm(original*x-b) / norm(b));
-end
 
 
-% matlab incomplete original permutation
-%0.005e-2
-gg = tic;
-iC = ichol(original, struct('type', 'ict', 'droptol', 0.19e-2));
-icholtime = toc(gg)
-density_iC = 2*nnz(iC)/nnz(original)
-if is_sddm == 0
-    [x,flag,relres,iter,resvec] = pcg(original, b(1 : length(b) / 2), 1e-10,1000,iC,iC',[]);
-else
-    s1 = tic;
-    %[x,flag,relres,iter,resvec] = pcg(original, b, 1e-10,1000,iC,iC',[]);
-    x = pcg(original, b, 1e-13,1000,iC,iC',[]);
-    incomp_pcgtime = toc(s1)
-end
-if is_sddm == 0
-    disp("matlab incomplete(original): " + norm(original*x-b(1 : length(b) / 2)) / norm(b(1 : length(b) / 2)));
-else
-    disp("matlab incomplete(original): " + norm(original*x-b) / norm(b));
-end
-%}
 
-% Julia sampling
+% solve using pcg
 func = @(x) cSolver(L1, D1, x);
 density_julia = 2*nnz(L1)/nnz(original)
-%[y,flag1,relres1,iter1,resvec1] = pcg(original(p_vec(1 : end - 1), p_vec(1 : end - 1)), b(p_vec(1 : end - 1), :),1e-13,200,func,[]);
 s1 = tic;
+%[y,flag1,relres1,iter1,resvec1] = pcg(original(p_vec(1 : end - 1), p_vec(1 : end - 1)), b(p_vec(1 : end - 1), :),1e-13,200,func,[]);
 y = pcg(original(p_vec(1 : end - 1), p_vec(1 : end - 1)), b(p_vec(1 : end - 1), :), 1e-13,200,func,[]);
 pcgtime = toc(s1)
-%j = y;
-%P = speye(size(test, 1));
-%P = P(p_vec, :)';
-%j = P * j;
-%j = j(1 : size(b, 1)) - j(size(b, 1) + 1) * ones(size(b, 1), 1);
 pt = 1 : length(p_vec) - 1;
 pt(p_vec(1 : end - 1)) = 1 : length(p_vec) - 1;
 y = y(pt);
@@ -120,13 +60,7 @@ else
     disp("random sampling: " + norm(original*y-b) / norm(b));
 end
 
-figure;
-spy(L1(1 : 100000, 1 : 100000));
-%set(gca,'FontSize',30)
-%set(gca,'XTick',[], 'YTick', [])
-set(gca,'xticklabel',{[]})
-set(gca,'yticklabel',{[]})
-delete(findall(findall(gcf,'Type','axe'),'Type','text'))
+
 
 % solver function used for pcg
 function [y] = cSolver(L, D, y)
@@ -137,6 +71,7 @@ function [y] = cSolver(L, D, y)
  
 end
 
+% calculate the separator indices
 function [p, val, separator] = recursive_separator1(logic, depth, target)
     if (depth == target)
         size = length(logic);
@@ -172,6 +107,7 @@ function [p, val, separator] = recursive_separator1(logic, depth, target)
     
 end
 
+% generate 3d laplace problem
 function A = laplace_3d(n)
   N = (n - 1)^3;  % total number of grid points
 
@@ -234,6 +170,7 @@ function [test] = convert2singular(original)
     test = [test; [(-condition)' sum(condition)]];
 end
 
+% convert sdd matrix into sddm matrix
 function [sddm] = convert2sddm(original)
     % diagonal
     di = diag(diag(original));
@@ -252,3 +189,4 @@ function [sddm] = convert2sddm(original)
     sddm = [di + neg, -pos; 
      -pos, di + neg];
 end
+
