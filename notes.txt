@@ -1,6 +1,18 @@
+matlab:
 LD_PRELOAD=/opt/apps/gcc/8.3.0/lib64/libstdc++.so.6 matlab
 
 mex matlab_solve.cpp CFLAGS="$CFLAGS -fopenmp" LDFLAGS="$LDFLAGS -fopenmp" -L/opt/intel/parallel_studio_xe_2020/compilers_and_libraries_2020/linux/tbb/lib/intel64/gcc4.8 -ltbbmalloc_proxy
 
 
+mex trygraph.cpp -I/work/06758/tliang/frontera/metis-5.1.0/include -L/work/06758/tliang/frontera/metis-5.1.0/build/Linux-x86_64/libmetis -lmetis
 
+python:
+
+// First, run the following two in order to compile
+1. cython python_interface.pyx --cplus
+
+2. g++ python_interface.cpp -I/usr/include/python3.6m -I/usr/include/python3.6m/numpy -fPIC -shared -o python_interface.so -O3 -m64 -msse3 -march=native -fopenmp -I/home/ty/Documents/metis-5.1.0/include -L/home/ty/Documents/metis-5.1.0/build/Linux-x86_64/libmetis -lmetis
+
+
+// run a simple example
+python3 python_example.py

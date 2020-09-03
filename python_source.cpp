@@ -2,12 +2,9 @@
 #include <stdlib.h>
 #include <iostream>
 #include <vector>
-#include "mex.h"
 #include "spcol.c"
 #include <set>
-#include "mat.h"
 #include <typeinfo>
-#include "matrix.h"
 #include <map>
 #include <random>
 #include <chrono>
@@ -148,7 +145,7 @@ int entrance(csc_form *input, uint64_t *idx_data, uint64_t idxdim, int thread)
 
     // clear memory
     
-    clear_memory(lap);
+    // clear_memory(lap);
 
 }
 
