@@ -27,29 +27,9 @@ cpdef random_factorization(original, thread):
     p_vec, val, sep = recursive_separator1(logic, 1, np.log2(thread) + 1)
     result_idx = np.cumsum(np.append(0, val))
     M = triu(test[p_vec[:, None], p_vec], format='csr') * -1
-    cdef np.ndarray[np.uint64_t, ndim=1] row = M.indices.astype(dtype=np.uint64)
-    cdef np.ndarray[np.uint64_t, ndim=1] col = M.indptr.astype(dtype=np.uint64)
-    cdef np.ndarray[np.double_t, ndim=1] data = M.data
-    cdef np.ndarray[np.uint64_t, ndim=1] idx_data = result_idx.astype(dtype=np.uint64)
 
-    # set up input to pass to C++
-    cdef csc_form input
-    input.row = &(row[0])
-    input.col = &(col[0])
-    input.val = &(data[0])
-    input.nsize = M.shape[0]
-    
-
-    # cdef np.ndarray[np.int_t, ndim=1] check = M.indices.astype(dtype=np.int)
-    # print(check[2])
-
-    # create arrays to store answer and call c++
-    entrance(&input, &(idx_data[0]), idx_data.shape[0], thread) 
-    np_ret_indptr = np.asarray(<np.uint64_t[:matrix_row + 1]> input.ret_col)
-    np_ret_indices = np.asarray(<np.uint64_t[:np_ret_indptr[matrix_row]]> input.ret_row)
-    np_ret_data = np.asarray(<np.double_t[:np_ret_indptr[matrix_row]]> input.ret_val)
-    D = np.asarray(<np.double_t[:matrix_row]> input.ret_diag)
-    L = csr_matrix((np_ret_data, np_ret_indices, np_ret_indptr), shape=(matrix_row, matrix_row))
+    # pass to C++, which returns the preconditioner and diagonal
+    L, D = pass_to_C(M, matrix_row, thread, result_idx)
 
     # call pcg to solve Ax = b for x
     b = np.random.rand(matrix_row)
@@ -150,3 +130,26 @@ cpdef recursive_separator1(logic, depth, target):
         p = np.append(l[p1], np.append(r[p2], s))
         return p, val, separator
     
+
+cpdef pass_to_C(M, matrix_row, thread, result_idx):
+
+    cdef np.ndarray[np.uint64_t, ndim=1] row = M.indices.astype(dtype=np.uint64)
+    cdef np.ndarray[np.uint64_t, ndim=1] col = M.indptr.astype(dtype=np.uint64)
+    cdef np.ndarray[np.double_t, ndim=1] data = M.data
+    cdef np.ndarray[np.uint64_t, ndim=1] idx_data = result_idx.astype(dtype=np.uint64)
+
+    # set up input to pass to C++
+    cdef csc_form input
+    input.row = &(row[0])
+    input.col = &(col[0])
+    input.val = &(data[0])
+    input.nsize = M.shape[0]
+    entrance(&input, &(idx_data[0]), idx_data.shape[0], thread) 
+
+    # create arrays to store answer and call c++
+    np_ret_indptr = np.asarray(<np.uint64_t[:matrix_row + 1]> input.ret_col)
+    np_ret_indices = np.asarray(<np.uint64_t[:np_ret_indptr[matrix_row]]> input.ret_row)
+    np_ret_data = np.asarray(<np.double_t[:np_ret_indptr[matrix_row]]> input.ret_val)
+    D = np.asarray(<np.double_t[:matrix_row]> input.ret_diag)
+    L = csr_matrix((np_ret_data, np_ret_indices, np_ret_indptr), shape=(matrix_row, matrix_row))
+    return L, D
