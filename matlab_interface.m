@@ -12,7 +12,7 @@ else
     test = convert2singular(original);
 end
 
-
+    
 % calculate separator indices
 graphtest = test - diag(diag(test));
 logic = (graphtest ~= 0);
