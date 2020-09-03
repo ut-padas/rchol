@@ -15,6 +15,10 @@ function [p, val, separator] = recursive_separator1(logic, depth, target)
     else
         
         sep = trygraph(logic);
+        if depth == 1
+            sep(end) = 2;
+        end
+        
         l = find(sep==0);
         r = find(sep==1);
         s = find(sep==2);
