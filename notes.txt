@@ -12,15 +12,6 @@ python:
 
 2. g++ python_interface.cpp -I/usr/include/python3.6m -I/usr/include/python3.6m/numpy -fPIC -shared -o python_interface.so -O3 -m64 -msse3 -march=native -fopenmp -I/home/ty/Documents/metis-5.1.0/include -L/home/ty/Documents/metis-5.1.0/build/Linux-x86_64/libmetis -lmetis
 
-// compile the following if you want to use example file
-1. cython python_example.pyx --cplus
 
-2. g++ python_example.cpp -I/usr/include/python3.6m -I/usr/include/python3.6m/numpy -fPIC -shared -o python_example.so -O3 -m64 -msse3 -march=native -fopenmp -I/home/ty/Documents/metis-5.1.0/include -L/home/ty/Documents/metis-5.1.0/build/Linux-x86_64/libmetis -lmetis
-
-
-// Start python3, and run import
-import python_interface
-import python_example
-
-// run the example problem
-python_example.example_problem()
+// run a simple example
+python3 python_example.py
