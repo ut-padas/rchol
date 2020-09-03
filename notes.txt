@@ -10,11 +10,17 @@ python:
 // First, run the following two in order to compile
 1. cython python_interface.pyx --cplus
 
-2. g++ python_interface.cpp -I/usr/include/python3.6m -I/usr/include/python3.6m/numpy -fPIC -shared -o python_interface.so -O3 -I/usr/local/MATLAB/R2019b/extern/include -I/usr/local/MATLAB/R2019b/bin/glnxa64  -L/usr/local/MATLAB/R2019b/bin/glnxa64 -lmx -lmat -lmex -Wl,-rpath,/usr/local/MATLAB/R2019b/bin/glnxa64 -m64 -msse3 -march=native -fopenmp -I/home/ty/Documents/metis-5.1.0/include -L/home/ty/Documents/metis-5.1.0/build/Linux-x86_64/libmetis -lmetis
+2. g++ python_interface.cpp -I/usr/include/python3.6m -I/usr/include/python3.6m/numpy -fPIC -shared -o python_interface.so -O3 -m64 -msse3 -march=native -fopenmp -I/home/ty/Documents/metis-5.1.0/include -L/home/ty/Documents/metis-5.1.0/build/Linux-x86_64/libmetis -lmetis
+
+// compile the following if you want to use example file
+1. cython python_example.pyx --cplus
+
+2. g++ python_example.cpp -I/usr/include/python3.6m -I/usr/include/python3.6m/numpy -fPIC -shared -o python_example.so -O3 -m64 -msse3 -march=native -fopenmp -I/home/ty/Documents/metis-5.1.0/include -L/home/ty/Documents/metis-5.1.0/build/Linux-x86_64/libmetis -lmetis
+
 
 // Start python3, and run import
-import python_interface 
+import python_interface
+import python_example
 
-// run the example problem and supply it with n, which stands for the small n of the size of laplacian matrix
-// In this case, n = 32 generates a 32^3 x 32^3 3D laplace sparse matrix
-python_interface.example_problem(32)
+// run the example problem
+python_example.example_problem()

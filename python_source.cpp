@@ -2,12 +2,9 @@
 #include <stdlib.h>
 #include <iostream>
 #include <vector>
-#include "mex.h"
 #include "spcol.c"
 #include <set>
-#include "mat.h"
 #include <typeinfo>
-#include "matrix.h"
 #include <map>
 #include <random>
 #include <chrono>
