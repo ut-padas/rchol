@@ -148,7 +148,7 @@ int entrance(csc_form *input, uint64_t *idx_data, uint64_t idxdim, int thread)
 
     // clear memory
     
-    clear_memory(lap);
+    // clear_memory(lap);
 
 }
 
