@@ -3,7 +3,7 @@
 #include <iostream>
 #include <vector>
 #include "mex.h"
-#include "spcol.c"
+#include "spcol.h"
 #include <set>
 #include "mat.h"
 #include <typeinfo>
@@ -11,7 +11,6 @@
 #include <map>
 #include <random>
 #include <chrono>
-#include "omp.h"
 #include <algorithm>
 #include <iostream>
 #include <fstream>
@@ -110,7 +109,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     * placed. Each bit represents a CPU
     */
     sched_setaffinity(0, sizeof(cpuset), &cpuset);
-    omp_set_num_threads(NUM_THREAD);
 
     
     const mxArray *arg0 = prhs[0];
@@ -169,7 +167,6 @@ int main(int argc, char *argv[])
     * placed. Each bit represents a CPU
     */
     sched_setaffinity(0, sizeof(cpuset), &cpuset);
-    omp_set_num_threads(NUM_THREAD);
 
 
     
@@ -311,7 +308,7 @@ std::vector<Edge_info> & recursive_calculation(std::vector<size_t> &result_idx, 
         time_e = std::chrono::steady_clock::now();
         elapsed += time_e - time_s;
 
-        std::cout << "depth: " << depth << " thread " << omp_get_thread_num() << " cpu: " << cpu_num << " time: " << std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count() << "\n";
+        std::cout << "depth: " << depth << " cpu: " << cpu_num << " time: " << std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count() << "\n";
         std::cout << "depth: " << depth << " length: " << result_idx.at(start) << " nztotal " << density << " density: " << density / (result_idx.at(start + total_size) - result_idx.at(start)) << "\n";
         std::cout << "depth: " << depth << "\n";
         //std::cout << omp_proc_bind_master << "  " << omp_get_proc_bind << "\n";
@@ -424,7 +421,7 @@ std::vector<Edge_info> & recursive_calculation(std::vector<size_t> &result_idx, 
         time_e = std::chrono::steady_clock::now();
         elapsed = time_e - time_s;
         int cpu_num = sched_getcpu();
-        std::cout << "depth(separator): " << depth << " thread " << omp_get_thread_num() << " cpu: " << cpu_num  << " time: " << std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count() << " length: " << result_idx.at(start + total_size) - result_idx.at(start + total_size - 1) << " nztotal " << density << " before: " << before_density / (result_idx.at(start + total_size) - result_idx.at(start + total_size - 1)) << " density: " << density / (result_idx.at(start + total_size) - result_idx.at(start + total_size - 1)) << "\n";
+        std::cout << "depth(separator): " << depth << " cpu: " << cpu_num  << " time: " << std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count() << " length: " << result_idx.at(start + total_size) - result_idx.at(start + total_size - 1) << " nztotal " << density << " before: " << before_density / (result_idx.at(start + total_size) - result_idx.at(start + total_size - 1)) << " density: " << density / (result_idx.at(start + total_size) - result_idx.at(start + total_size - 1)) << "\n";
 		
         return sep_edge;
     }
@@ -447,7 +444,6 @@ void cholesky_factorization(std::vector<gsl_spmatrix *> &lap, std::vector<mxArra
     auto end = std::chrono::steady_clock::now();
     auto elapsed = end - start;
     
-    std::cout << omp_get_max_threads() << "\n";
 
 
     start = std::chrono::steady_clock::now();

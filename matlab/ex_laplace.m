@@ -12,10 +12,12 @@ G = rchol(A(p,p));
 % solve with PCG
 tol = 1e-6;
 maxit = 50;
-[x, flag, relres] = pcg(A(p,p), b(p), tol, maxit, G, G');
+[x, flag, relres, itr] = pcg(A(p,p), b(p), tol, maxit, G, G');
 
 % verify solution
-fprintf('Relative residual: %e.2\n', norm(b-A*x(p))/norm(b))
+y = zeros(length(x), 1);
+y(p) = x;
+fprintf('Relative residual: %.2e\n', norm(b-A*y)/norm(b))
 
 
 
