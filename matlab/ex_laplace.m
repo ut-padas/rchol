@@ -1,5 +1,5 @@
 % 3D constant Poisson equation with dirichlet boundary
-n = 128;
+n = 16;
 A = laplace_3d(n);
 
 % random RHS
@@ -10,7 +10,7 @@ p = amd(A);
 G = rchol(A(p,p));
 
 % solve with PCG
-tol = 1e-10;
+tol = 1e-6;
 maxit = 200;
 
 tic
