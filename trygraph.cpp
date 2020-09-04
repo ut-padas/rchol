@@ -106,13 +106,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     for(idx_t i = 0; i < N+1; i++)
     {
         cpt[i] = cpt1[i];
+ 
     }
-
+    std::cout << "\n";
     for(idx_t i = 0; i < nz; i++)
     {
         rpt[i] = rpt1[i];
+       
     }
-
+  
 //    idx_t *part = (idx_t*)calloc(N, sizeof(idx_t));
 //    idx_t *ipart = (idx_t*)calloc(N, sizeof(idx_t));
 //    mxArray *perm = mxCreateNumericMatrix(N, 1, mxDOUBLE_CLASS, mxREAL);
