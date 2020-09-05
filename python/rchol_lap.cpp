@@ -96,7 +96,7 @@ void clear_memory(std::vector<gsl_spmatrix *> &lap);
 int NUM_THREAD = 0;
 
 
-int entrance(csc_form *input, uint64_t *idx_data, uint64_t idxdim, int thread)
+void entrance(csc_form *input, uint64_t *idx_data, uint64_t idxdim, int thread)
 {
     NUM_THREAD = thread;
     cpu_set_t cpuset; 

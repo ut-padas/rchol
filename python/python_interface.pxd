@@ -7,8 +7,8 @@ ctypedef stdint.uint64_t size_t
 
 
 
-cdef extern from "python_source.cpp":
-    int entrance(csc_form *input, stdint.uint64_t *idx_data, stdint.uint64_t idxdim, int thread)  
+cdef extern from "rchol_lap.cpp":
+    void entrance(csc_form *input, stdint.uint64_t *idx_data, stdint.uint64_t idxdim, int thread)  
     ctypedef struct csc_form:
         stdint.uint64_t *row
         stdint.uint64_t *col

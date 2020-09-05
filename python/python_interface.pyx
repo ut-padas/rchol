@@ -6,14 +6,24 @@ cimport numpy as np
 import time
 import scipy.sparse
 from scipy.sparse import csc_matrix, csr_matrix, triu, linalg
-import h5py
 import os
 from os.path import dirname, join as pjoin
 from libc cimport stdint
 import importlib
 from libc.stdlib cimport malloc, free
-cimport python_interface as pi
+#cimport python_interface as pi
 
+cdef extern from "python_source.cpp":
+    int entrance(csc_form *input, stdint.uint64_t *idx_data, stdint.uint64_t idxdim, int thread)  
+    ctypedef struct csc_form:
+        stdint.uint64_t *row
+        stdint.uint64_t *col
+        double *val
+        stdint.uint64_t *ret_row
+        stdint.uint64_t *ret_col
+        double *ret_val
+        double *ret_diag
+        stdint.uint64_t nsize
 
 """
 cpdef random_factorization_parallel(original, thread):

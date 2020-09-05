@@ -1,10 +1,24 @@
-all: python_interface.cpp python_interface.so
 
-python_interface.cpp: python_interface.pyx
-	cython python_interface.pyx --cplus
+CC?=g++
+PYTHON_INC?=/usr/include/python2.7
+
+ifeq ($(findstring frontera,$(shell uname -n)),frontera)
+	PYTHON_INC=/usr/include/python3.6m
+endif
+
+
+all: python_interface.so
+
 
 python_interface.so: python_interface.cpp
-	g++ python_interface.cpp -I/usr/include/python3.6m -I/usr/include/python3.6m/numpy -fPIC -shared -o python_interface.so -O3
+	g++ $< -I$(PYTHON_INC) -fPIC -shared -O3 -o $@
+
+python_interface.cpp: python_interface.pyx python_interface.pxd rchol_lap.cpp 
+	cython $< --cplus
+
+
+run:
+	python3 ex_laplace.py
 
 clean:
 	rm -f python_interface.cpp

@@ -3,7 +3,6 @@ import numpy as np
 import time
 import scipy.sparse
 from scipy.sparse import csc_matrix, csr_matrix, triu, linalg
-import h5py
 import os
 from os.path import dirname, join as pjoin
 import importlib
