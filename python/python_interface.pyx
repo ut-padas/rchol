@@ -15,8 +15,8 @@ from libc.stdlib cimport malloc, free
 cimport python_interface as pi
 
 
-
-cpdef random_factorization(original, thread):
+"""
+cpdef random_factorization_parallel(original, thread):
 
     matrix_row = original.shape[0]
     # convert to laplacian, permute laplacian and extract content
@@ -40,6 +40,33 @@ cpdef random_factorization(original, thread):
     pt[p_vec[0:-1]] = np.arange(x.shape[0], dtype=np.uint64)
     x = x[pt]
     print('relative residual of system: ' + str(np.linalg.norm(original * x - b) / np.linalg.norm(b)))
+"""
+
+cpdef random_factorization(original, thread):
+
+    matrix_row = original.shape[0]
+    # convert to laplacian, permute laplacian and extract content
+    test = convert2laplacian(original)
+    logic = test.copy()
+    logic.setdiag(0)
+    logic.eliminate_zeros()
+    p_vec = np.arange(matrix_row + 1, dtype=np.uint64)
+    result_idx = np.array([0, test.shape[0]], dtype=np.uint64)
+    M = triu(test[p_vec[:, None], p_vec], format='csr') * -1
+
+    # pass to C++, which returns the preconditioner and diagonal
+    L, D = pass_to_C(M, matrix_row, thread, result_idx)
+
+    # call pcg to solve Ax = b for x
+    b = np.random.rand(matrix_row)
+    b = b.astype(dtype=np.double)
+    epsilon = 1e-10
+    x = pcg(original[p_vec[0:-1, None], p_vec[0:-1]], b[p_vec[0:-1]], L, D, epsilon)
+    pt = np.zeros(p_vec.shape[0] - 1, dtype=np.uint64)
+    pt[p_vec[0:-1]] = np.arange(x.shape[0], dtype=np.uint64)
+    x = x[pt]
+    print('relative residual of system: ' + str(np.linalg.norm(original * x - b) / np.linalg.norm(b)))
+
  
 
 cpdef convert2laplacian(M):
@@ -69,7 +96,7 @@ cpdef pcg(A, b, L, D, epsilon):
         scipy.sparse.linalg.spsolve_triangular(L, temp, lower=False, overwrite_b=True)
         t2 = time.time()
         t = t2 - t1
-        print("%.20f" % t)
+        print('preconditioner solve time: ' + ("%.20f" % t))
 
         if niters == 0:
             p = temp
@@ -82,7 +109,7 @@ cpdef pcg(A, b, L, D, epsilon):
         prev_val = np.dot(r, temp)
         r = r - alpha * q
         niters = niters + 1
-        print(np.linalg.norm(r) / np.linalg.norm(b))
+        print('current residual: ' + str(np.linalg.norm(r) / np.linalg.norm(b)))
 
     acc = np.linalg.norm(A * x - b) / np.linalg.norm(b)
     print('used ' + str(niters) + ' iterations to reach accuracy: ' + str(acc))
@@ -91,6 +118,7 @@ cpdef pcg(A, b, L, D, epsilon):
 
 
 # calculates the separator
+"""
 cpdef recursive_separator1(logic, depth, target):
     cdef stdint.uint64_t *sep_ptr
     cdef np.ndarray[np.uint64_t, ndim=1] row = logic.indices.astype(dtype=np.uint64)
@@ -129,7 +157,7 @@ cpdef recursive_separator1(logic, depth, target):
         val = np.append(v1, np.append(v2, s.shape[0]))
         p = np.append(l[p1], np.append(r[p2], s))
         return p, val, separator
-    
+"""
 
 cpdef pass_to_C(M, matrix_row, thread, result_idx):
 
@@ -153,3 +181,7 @@ cpdef pass_to_C(M, matrix_row, thread, result_idx):
     D = np.asarray(<np.double_t[:matrix_row]> input.ret_diag)
     L = csr_matrix((np_ret_data, np_ret_indices, np_ret_indptr), shape=(matrix_row, matrix_row))
     return L, D
+
+
+cpdef python_factorization(laplacian):
+    return pass_to_C(laplacian, laplacian.shape[0] - 1, 1, np.array([0, laplacian.shape[0]], dtype=np.uint64))

@@ -14,31 +14,22 @@ import python_interface as pyi
 
 def example_problem():
     import sys
-    sys.path.append(pjoin(os.path.dirname(os.path.realpath(__file__)), 'python'))
+    sys.path.append(pjoin(os.path.dirname(os.path.realpath(__file__))))
     import laplace_3d
 
     
     n = 10 # problem size
-    thread = 2 # number of thread to use, should be powers of 2, and should not exceed problem size
     # generate the example matrix
     original = laplace_3d.laplace_3d(n)
-    original = original.tocsr(copy=True)
-    original.eliminate_zeros()
+    p_vec = np.arange(original.shape[0] + 1, dtype=np.uint64)
     
     
-    
-    # convert to laplacian, permute laplacian and extract content
+    # convert to laplacian, permute laplacian and extract upper triangular portion(csr), if lower triangular is used, then format needs to be csc
     matrix_row = original.shape[0]
-    test = pyi.convert2laplacian(original)
-    logic = test.copy()
-    logic.setdiag(0)
-    logic.eliminate_zeros()
-    p_vec, val, sep = pyi.recursive_separator1(logic, 1, np.log2(thread) + 1)
-    result_idx = np.cumsum(np.append(0, val))
-    M = triu(test[p_vec[:, None], p_vec], format='csr') * -1
+    laplacian = triu(pyi.convert2laplacian(original)[p_vec[:, None], p_vec], format='csr') * -1
 
     # call the wrapper function for C routine, which returns preconditioner and diagonal
-    L, D = pyi.pass_to_C(M, matrix_row, thread, result_idx)
+    L, D = pyi.python_factorization(laplacian)
 
     # call pcg to solve Ax = b for x
     b = np.random.rand(matrix_row)

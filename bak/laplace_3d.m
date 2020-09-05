@@ -46,5 +46,7 @@ function A = laplace_3d(n)
 
   A = sparse(I,J,S,N,N);
   %A = A - spdiags(sum(A, 2), 0, size(A, 1), size(A, 2));
-    
+  save('I.mat', 'I', '-v7.3');  
+  save('J.mat', 'J', '-v7.3');
+  save('S.mat', 'S', '-v7.3');
 end

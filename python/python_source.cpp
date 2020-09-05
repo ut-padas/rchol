@@ -2,13 +2,12 @@
 #include <stdlib.h>
 #include <iostream>
 #include <vector>
-#include "spcol.c"
+#include "spcol.h"
 #include <set>
 #include <typeinfo>
 #include <map>
 #include <random>
 #include <chrono>
-#include "omp.h"
 #include <algorithm>
 #include <iostream>
 #include <fstream>
@@ -115,7 +114,6 @@ int entrance(csc_form *input, uint64_t *idx_data, uint64_t idxdim, int thread)
     * placed. Each bit represents a CPU
     */
     sched_setaffinity(0, sizeof(cpuset), &cpuset);
-    omp_set_num_threads(NUM_THREAD);
 
 
 
@@ -237,7 +235,7 @@ std::vector<Edge_info> & recursive_calculation(std::vector<size_t> &result_idx, 
         time_e = std::chrono::steady_clock::now();
         elapsed += time_e - time_s;
 
-        std::cout << "depth: " << depth << " thread " << omp_get_thread_num() << " cpu: " << cpu_num << " time: " << std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count() << "\n";
+        std::cout << "depth: " << depth << " thread " << std::this_thread::get_id() << " cpu: " << cpu_num << " time: " << std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count() << "\n";
         std::cout << "depth: " << depth << " length: " << result_idx.at(start) << " nztotal " << density << " density: " << density / (result_idx.at(start + total_size) - result_idx.at(start)) << "\n";
         std::cout << "depth: " << depth << "\n";
         //std::cout << omp_proc_bind_master << "  " << omp_get_proc_bind << "\n";
@@ -350,7 +348,7 @@ std::vector<Edge_info> & recursive_calculation(std::vector<size_t> &result_idx, 
         time_e = std::chrono::steady_clock::now();
         elapsed = time_e - time_s;
         int cpu_num = sched_getcpu();
-        std::cout << "depth(separator): " << depth << " thread " << omp_get_thread_num() << " cpu: " << cpu_num  << " time: " << std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count() << " length: " << result_idx.at(start + total_size) - result_idx.at(start + total_size - 1) << " nztotal " << density << " before: " << before_density / (result_idx.at(start + total_size) - result_idx.at(start + total_size - 1)) << " density: " << density / (result_idx.at(start + total_size) - result_idx.at(start + total_size - 1)) << "\n";
+        std::cout << "depth(separator): " << depth << " thread " << std::this_thread::get_id() << " cpu: " << cpu_num  << " time: " << std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count() << " length: " << result_idx.at(start + total_size) - result_idx.at(start + total_size - 1) << " nztotal " << density << " before: " << before_density / (result_idx.at(start + total_size) - result_idx.at(start + total_size - 1)) << " density: " << density / (result_idx.at(start + total_size) - result_idx.at(start + total_size - 1)) << "\n";
 		
         return sep_edge;
     }
@@ -372,7 +370,7 @@ void cholesky_factorization(std::vector<gsl_spmatrix *> &lap, csc_form *input,  
     auto end = std::chrono::steady_clock::now();
     auto elapsed = end - start;
     
-    std::cout << omp_get_max_threads() << "\n";
+    std::cout << NUM_THREAD << "\n";
 
 
     start = std::chrono::steady_clock::now();
@@ -808,17 +806,11 @@ void process_array(csc_form *input, std::vector<size_t> &result_idx, size_t dept
     else
     {
         /* code */   
-        // std::async(std::launch::async, process_array, input, std::ref(result_idx), depth + 1, target, std::ref(lap), (total_size - 1) / 2 + start, (total_size - 1) / 2, core_id, core_end); 
-        #pragma omp parallel
-        #pragma omp single
-        #pragma omp task shared(lap)
-        {
-            process_array(input, result_idx, depth + 1, target, lap, (total_size - 1) / 2 + start, (total_size - 1) / 2, core_id, core_end);
-        }
+        auto future = std::async(std::launch::async, process_array, input, std::ref(result_idx), depth + 1, target, std::ref(lap), (total_size - 1) / 2 + start, (total_size - 1) / 2, core_id, core_end); 
         process_array(input, result_idx, depth + 1, target, lap, start, (total_size - 1) / 2, core_begin, core_id);
 
         // synchronize
-        #pragma omp taskwait
+        future.wait();
 
         // separator
         size_t i, j;

@@ -1,6 +1,6 @@
 % decide whether the problem is sddm and generate problem
 is_sddm = 1;
-n = 64;
+n = 10;
 dim = 5;
 %original = Problem.A;
 original = laplace_3d(n + 1);
@@ -18,7 +18,7 @@ graphtest = test - diag(diag(test));
 logic = (graphtest ~= 0);
 index = 1 : length(graphtest);
 tic;
-[p_vec, val, ~] = recursive_separator1(logic, 1, 1);
+[p_vec, val, ~] = recursive_separator1(logic, 1, 2);
 toc;
 idx = find(p_vec == size(test, 1));
 p_vec(idx) = p_vec(end);

@@ -11,6 +11,8 @@ def laplace_3d(n):
     A1 = sp.kron(D,I)
     A2 = sp.kron(I,D)
     A = sp.kron(A1,I)+sp.kron(I,A1)+sp.kron(I,A2)
+    A = A.tocsr(copy=True)
+    A.eliminate_zeros()
     return A
 
 if __name__=='__main__':
