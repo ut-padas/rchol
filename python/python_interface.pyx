@@ -12,8 +12,10 @@ from libc cimport stdint
 import importlib
 from libc.stdlib cimport malloc, free
 #cimport python_interface as pi
+from libc cimport stdint 
+import importlib
 
-cdef extern from "python_source.cpp":
+cdef extern from "rchol_lap.cpp":
     int entrance(csc_form *input, stdint.uint64_t *idx_data, stdint.uint64_t idxdim, int thread)  
     ctypedef struct csc_form:
         stdint.uint64_t *row
@@ -24,6 +26,9 @@ cdef extern from "python_source.cpp":
         double *ret_val
         double *ret_diag
         stdint.uint64_t nsize
+
+cdef extern from "spcol.c":
+    pass
 
 """
 cpdef random_factorization_parallel(original, thread):
@@ -106,7 +111,7 @@ cpdef pcg(A, b, L, D, epsilon):
         scipy.sparse.linalg.spsolve_triangular(L, temp, lower=False, overwrite_b=True)
         t2 = time.time()
         t = t2 - t1
-        print('preconditioner solve time: ' + ("%.20f" % t))
+        #print('preconditioner solve time: ' + ("%.20f" % t))
 
         if niters == 0:
             p = temp
@@ -119,10 +124,12 @@ cpdef pcg(A, b, L, D, epsilon):
         prev_val = np.dot(r, temp)
         r = r - alpha * q
         niters = niters + 1
-        print('current residual: ' + str(np.linalg.norm(r) / np.linalg.norm(b)))
+        #print('current residual: ' + str(np.linalg.norm(r) / np.linalg.norm(b)))
 
     acc = np.linalg.norm(A * x - b) / np.linalg.norm(b)
-    print('used ' + str(niters) + ' iterations to reach accuracy: ' + str(acc))
+
+    print('# CG iterations: {}'.format(niters))
+    print('Relative residual: {:.2e}'.format(acc))
 
     return x
 
