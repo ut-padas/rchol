@@ -61,7 +61,7 @@ cpdef random_factorization(original, thread):
 
     matrix_row = original.shape[0]
     # convert to laplacian, permute laplacian and extract content
-    test = convert2laplacian(original)
+    test = sddm_to_laplacian(original)
     logic = test.copy()
     logic.setdiag(0)
     logic.eliminate_zeros()
@@ -84,7 +84,7 @@ cpdef random_factorization(original, thread):
 
  
 
-cpdef convert2laplacian(M):
+cpdef sddm_to_laplacian(M):
     
     cdef np.ndarray[np.double_t, ndim=1] one_row = -np.squeeze(np.asarray(M.sum(axis=0)))
     np.where(np.abs(one_row) < 1e-9, 0, one_row)
