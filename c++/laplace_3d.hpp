@@ -1,10 +1,11 @@
 #ifndef LAPLACE_3D_HPP
 #define LAPLACE_3D_HPP
 
+#include <cassert>
 #include <vector>
 
 template <typename T>
-void laplace_3d(size_t n, std::vector<int> &rowPtr, std::vector<int> &colIdx, 
+void laplace_3d(int n, std::vector<int> &rowPtr, std::vector<int> &colIdx, 
     std::vector<T> &val) {
   size_t N = n*n*n;
   size_t nnz = 0;
@@ -55,9 +56,40 @@ void laplace_3d(size_t n, std::vector<int> &rowPtr, std::vector<int> &colIdx,
       }
     }
   }
+#if 0
   assert(rowPtr.size()==N+1);
   assert(colIdx.size()==val.size());
   assert(colIdx.size()==7*(n-2)*(n-2)*(n-2)+6*(n-2)*(n-2)*6+5*(n-2)*12+4*1*8);
+#endif
 }
+
+
+// input: sparse matrix in csr format
+// output: the upper triangular submatrix (excluding diagonal) in csr format
+template <typename T>
+void triu_csr
+(const std::vector<int> &rowPtrA, const std::vector<int> &colIdxA, const std::vector<T> &valA,
+ std::vector<int> &rowPtrU, std::vector<int> &colIdxU, std::vector<T> &valU) {
+  // get matrix size and nnz
+  int n = rowPtrA.size()-1;
+  int nnz = rowPtrA[n];
+  // allocate memory
+  rowPtrU.resize(n+1, 0);
+  colIdxU.reserve((nnz-n)/2);
+  valU.reserve((nnz-n)/2);
+  // get upper triangular
+  for (int r=0; r<n; r++) {
+    int start = rowPtrA[r];
+    int end = rowPtrA[r+1];
+    for (int i=start; i<end; i++) {
+      if (r <= colIdxA[i]) {
+        colIdxU.push_back(colIdxA[i]);
+        valU.push_back(valA[i]);
+      }
+    }
+    rowPtrU[r+1] = valU.size();
+  }
+}
+
 
 #endif
