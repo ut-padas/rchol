@@ -1,3 +1,5 @@
 
-run ex_laplace.py with python3, i.e., python3 ex_laplace.py
+Compile and run the example with the same python version
+
+The makefile defaults to python3, so run ex_laplace.py with python3, i.e., python3 ex_laplace.py
 
