@@ -65,7 +65,7 @@ void laplace_3d(int n, std::vector<int> &rowPtr, std::vector<int> &colIdx,
 
 
 // input: sparse matrix in csr format
-// output: the upper triangular submatrix (excluding diagonal) in csr format
+// output: the upper triangular submatrix (including diagonal) in csr format
 template <typename T>
 void triu_csr
 (const std::vector<int> &rowPtrA, const std::vector<int> &colIdxA, const std::vector<T> &valA,
