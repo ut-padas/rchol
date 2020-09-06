@@ -1,12 +1,12 @@
 import numpy as np
-import scipy
-from scipy.sparse import triu
+from scipy.sparse import triu, diags
 import python_interface as pyi
+from sddm_to_laplacian import *
 
 def rchol(A):
-  Lap = pyi.sddm_to_laplacian(A)
+  Lap = sddm_to_laplacian(A)
   edges = -1*triu(Lap, format='csr')
-  L, D = pyi.python_factorization(edges)
-  Gt = L * scipy.sparse.diags(np.sqrt(D))
+  L, D = pyi.rchol_lap(edges)
+  Gt = L * diags(np.sqrt(D))
   return Gt.transpose().tocsr()
 

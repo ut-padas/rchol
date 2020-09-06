@@ -1,8 +1,7 @@
 import numpy as np 
 from numpy.linalg import norm
-from laplace_3d import *
 from rchol import *
-from pcg import *
+from util import *
 
 
 # SDDM matrix from 3D constant Poisson equation
