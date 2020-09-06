@@ -3,18 +3,18 @@ CC?=g++
 PYTHON_INC?=/usr/include/python3.6m
 
 
-all: python_interface.so
+all: pyrchol_lap.so
 
-python_interface.so: python_interface.cpp
+pyrchol_lap.so: pyrchol_lap.cpp
 	g++ $< -I$(PYTHON_INC) -fPIC -shared -O3 -o $@
 
-python_interface.cpp: python_interface.pyx rchol_lap.cpp 
+pyrchol_lap.cpp: pyrchol_lap.pyx rchol_lap.cpp 
 	cython $< --cplus -3
 
 
-run: python_interface.so
+run: pyrchol_lap.so
 	python3 ex_laplace.py
 
 clean:
-	rm -f python_interface.cpp
-	rm -f python_interface.so
+	rm -f pyrchol_lap.cpp
+	rm -f pyrchol_lap.so

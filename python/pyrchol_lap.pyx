@@ -18,20 +18,6 @@ cdef extern from "rchol_lap.cpp":
         double *ret_diag
         stdint.uint64_t nsize
 
-cdef extern from "spcol.c":
-    pass
-
-
-cpdef sddm_to_laplacian(M):
-    
-    cdef np.ndarray[np.double_t, ndim=1] one_row = -np.squeeze(np.asarray(M.sum(axis=0)))
-    np.where(np.abs(one_row) < 1e-9, 0, one_row)
-    cdef double total = -one_row.sum()
-    M = scipy.sparse.vstack([M, one_row], format='csr')
-    one_col = np.append(one_row, total)
-    M = scipy.sparse.hstack([M, one_col.reshape(-1, 1)], format='csr')
-    return M
-
 
 cpdef rchol_lap_cpp(M, matrix_row, thread, result_idx):
 
@@ -60,6 +46,10 @@ cpdef rchol_lap_cpp(M, matrix_row, thread, result_idx):
 cpdef rchol_lap(laplacian):
     n = laplacian.shape[0]
     return rchol_lap_cpp(laplacian, n-1, 1, np.array([0, n], dtype=np.uint64))
+
+
+cdef extern from "spcol.c":
+    pass
 
 
 # calculates the separator
