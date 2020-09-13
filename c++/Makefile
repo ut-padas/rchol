@@ -1,7 +1,7 @@
 
-all: ex_laplace.o sparse.o spcol.o rchol.o
-	#driver
+all: driver
 
+objects := $(patsubst %.cpp,%.o,$(wildcard *.cpp))
 
 %.o: %.cpp %.hpp
 	icc -Wall -O3 -c $< -o $@
@@ -9,7 +9,7 @@ all: ex_laplace.o sparse.o spcol.o rchol.o
 ex_laplace.o: ex_laplace.cpp
 	icc -Wall -O3 -c $< -o $@
 
-driver: ex_laplace.o rchol_lap.o spcol.o sparse.o
+driver: $(objects)
 	icpc $^ -o $@ -Wall -O3 -lmkl_intel_ilp64 -mkl
 	
 	

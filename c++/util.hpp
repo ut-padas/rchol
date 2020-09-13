@@ -1,5 +1,5 @@
-#ifndef LAPLACE_3D_HPP
-#define LAPLACE_3D_HPP
+#ifndef UTIL_HPP
+#define UTIL_HPP
 
 #include <cassert>
 #include <vector>
@@ -7,6 +7,8 @@
 
 #include "sparse.hpp"
 
+
+SparseCSR laplace_3d(int);
 
 
 template <typename T>
@@ -17,6 +19,7 @@ void print(const T &x, std::string name) {
   std::cout<<std::endl;
 }
 
+
 template <typename T>
 void rand(std::vector<T> &x) {
   std::mt19937 gen(std::random_device{}());
@@ -24,69 +27,6 @@ void rand(std::vector<T> &x) {
   for (size_t i=0; i<x.size(); i++)
     x[i] = dist(gen);
 }
-
-
-template <typename T>
-void laplace_3d(size_t n, std::vector<size_t> &rowPtr, std::vector<size_t> &colIdx, 
-    std::vector<T> &val) {
-  size_t N = n*n*n;
-  size_t nnz = 0;
-  rowPtr.reserve(N+1); rowPtr.push_back(nnz);
-  colIdx.reserve(7*N);
-  val.reserve(7*N);
-
-  size_t n2 = n*n;
-  for (size_t i=0; i<n; i++) {
-    for (size_t j=0; j<n; j++) {
-      for (size_t k=0; k<n; k++) {
-        size_t idx = k+j*n+i*n2;
-        if (i>0) {
-          colIdx.push_back(idx-n2);
-          val.push_back(-1);
-          nnz++;
-        }
-        if (j>0) {
-          colIdx.push_back(idx-n);
-          val.push_back(-1);
-          nnz++;
-        }
-        if (k>0) {
-          colIdx.push_back(idx-1);
-          val.push_back(-1);
-          nnz++;
-        }
-        // self
-        colIdx.push_back(idx);
-        val.push_back(6);
-        nnz++;
-        if (k<n-1) {
-          colIdx.push_back(idx+1);
-          val.push_back(-1);
-          nnz++;
-        }
-        if (j<n-1) {
-          colIdx.push_back(idx+n);
-          val.push_back(-1);
-          nnz++;
-        }
-        if (i<n-1) {
-          colIdx.push_back(idx+n2);
-          val.push_back(-1);
-          nnz++;
-        }
-        rowPtr.push_back(nnz);
-      }
-    }
-  }
-#if 0
-  assert(rowPtr.size()==N+1);
-  assert(colIdx.size()==val.size());
-  assert(colIdx.size()==7*(n-2)*(n-2)*(n-2)+6*(n-2)*(n-2)*6+5*(n-2)*12+4*1*8);
-#endif
-}
-
-
-SparseCSR laplace_3d(int);
 
 
 // input: sparse matrix in csr format
@@ -129,8 +69,6 @@ void convert_to_laplace(const std::vector<size_t> &rowPtr, const std::vector<siz
     const std::vector<T> &val, std::vector<size_t> &rowPtrL, std::vector<size_t> &colIdxL, std::vector<T> &valL, 
     std::vector<size_t> &rowPtrA, std::vector<size_t> &colIdxA, std::vector<T> &valA) {
       
-
-
   // get matrix size and nnz
   size_t n = rowPtr.size() - 1;
   size_t nnz = rowPtr[n];
@@ -176,63 +114,6 @@ void convert_to_laplace(const std::vector<size_t> &rowPtr, const std::vector<siz
   rowPtrL[n + 1] = valL.size();
 
 }
-
-
-class pcg{
-public:
-  pcg(const SparseCSR A, const std::vector<double> &b, double tol, int maxit,
-      const SparseCSR G, std::vector<double> &x, double &relres, int &itr);
-};
-
-
-/*
-#define MKL_INT size_t
-
-#include "mkl_spblas.h"
-#include "mkl.h"
-#include "mkl_types.h"
-
-
-struct Sparse_storage_input {
-    std::vector<size_t> *colPtr; 
-    std::vector<size_t> *rowIdx; 
-    std::vector<double> *val;
-};
-
-
-struct Sparse_storage_output {
-    size_t *colPtr; 
-    size_t *rowIdx; 
-    double *val;
-    size_t N;
-};
-
-typedef sparse_matrix_t SpMat;
-
-void create_sparse(const Sparse_storage_output *output, SpMat &mat);
-
-class CG { 
-
-public:
-
-  CG(int numItr, double eps, size_t problem_size);
-  CG(int nitr, double tol, size_t problem_size, const double *soln);
-
-  void solve(const SpMat *A, const double *b, SpMat *lap);
-  
-  void print_results() const;
-
-private:
-  void matrix_vector_product(const SpMat *A, const double *b, double *q);
-  void random_precond_solve(SpMat *lap, const double *b, double *x);
-
-private:
-  int maxSteps;
-  double tolerance;
-  double residual;
-  size_t ps;
-};
-*/
 
 
 #endif

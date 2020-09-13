@@ -14,7 +14,7 @@ public:
 
   ~SparseCSR();
 
-private:
+public:
   size_t N = 0;
   size_t *rowPtr;
   size_t *colIdx;

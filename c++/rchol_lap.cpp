@@ -14,8 +14,22 @@
 #include <thread>
 #include <vector>
 #include "rchol_lap.hpp"
+#include "spcol.hpp"
 
 
+struct Sparse_storage_input {
+    std::vector<size_t> *colPtr; 
+    std::vector<size_t> *rowIdx; 
+    std::vector<double> *val;
+};
+
+
+struct Sparse_storage_output {
+    size_t *colPtr; 
+    size_t *rowIdx; 
+    double *val;
+    size_t N;
+};
 
 /* used for random sampling */
 struct Sample {
@@ -79,6 +93,7 @@ int NUM_THREAD = 0;
 
 
 
+
 void rchol_lap(Sparse_storage_input *input, Sparse_storage_output *output, std::vector<size_t> &result_idx, int thread)
 {
     NUM_THREAD = thread;
@@ -104,18 +119,10 @@ void rchol_lap(Sparse_storage_input *input, Sparse_storage_output *output, std::
     process_array(input, result_idx, 1, (size_t)(std::log2(NUM_THREAD) + 1), lap, 0, result_idx.size() - 1, 0, NUM_THREAD);
     
 
-    
-    
-
-
-
-
     auto start = std::chrono::steady_clock::now();
     cholesky_factorization(lap, result_idx, output);
     auto end = std::chrono::steady_clock::now();
     std::cout << "chol time: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "\n";
-
-
 
 
     // clear memory
@@ -125,6 +132,20 @@ void rchol_lap(Sparse_storage_input *input, Sparse_storage_output *output, std::
     
 
 }
+
+
+
+void rchol_lap(std::vector<size_t> &rowPtr, std::vector<size_t> &colIdx, std::vector<double> &val, 
+    size_t*&, size_t*&, double*&, size_t&) {
+  Sparse_storage_input input;
+  input.colPtr = &rowPtr;
+  input.rowIdx = &colIdx;
+  input.val = &val;
+  Sparse_storage_output output;
+  std::vector<size_t> idx = {0, rowPtr.size()-1};
+  rchol_lap(&input, &output, idx, 1);
+}
+
 
 
 
