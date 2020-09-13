@@ -3,6 +3,28 @@
 
 #include <cassert>
 #include <vector>
+#include <random>
+
+#include "sparse.hpp"
+
+
+
+template <typename T>
+void print(const T &x, std::string name) {
+  std::cout<<name<<":"<<std::endl;
+  for (size_t i=0; i<x.size(); i++)
+    std::cout<<x[i]<<" ";
+  std::cout<<std::endl;
+}
+
+template <typename T>
+void rand(std::vector<T> &x) {
+  std::mt19937 gen(std::random_device{}());
+  std::uniform_real_distribution<T> dist(0.0, 1.0);
+  for (size_t i=0; i<x.size(); i++)
+    x[i] = dist(gen);
+}
+
 
 template <typename T>
 void laplace_3d(size_t n, std::vector<size_t> &rowPtr, std::vector<size_t> &colIdx, 
@@ -62,6 +84,9 @@ void laplace_3d(size_t n, std::vector<size_t> &rowPtr, std::vector<size_t> &colI
   assert(colIdx.size()==7*(n-2)*(n-2)*(n-2)+6*(n-2)*(n-2)*6+5*(n-2)*12+4*1*8);
 #endif
 }
+
+
+SparseCSR laplace_3d(int);
 
 
 // input: sparse matrix in csr format
@@ -152,6 +177,62 @@ void convert_to_laplace(const std::vector<size_t> &rowPtr, const std::vector<siz
 
 }
 
+
+class pcg{
+public:
+  pcg(const SparseCSR A, const std::vector<double> &b, double tol, int maxit,
+      const SparseCSR G, std::vector<double> &x, double &relres, int &itr);
+};
+
+
+/*
+#define MKL_INT size_t
+
+#include "mkl_spblas.h"
+#include "mkl.h"
+#include "mkl_types.h"
+
+
+struct Sparse_storage_input {
+    std::vector<size_t> *colPtr; 
+    std::vector<size_t> *rowIdx; 
+    std::vector<double> *val;
+};
+
+
+struct Sparse_storage_output {
+    size_t *colPtr; 
+    size_t *rowIdx; 
+    double *val;
+    size_t N;
+};
+
+typedef sparse_matrix_t SpMat;
+
+void create_sparse(const Sparse_storage_output *output, SpMat &mat);
+
+class CG { 
+
+public:
+
+  CG(int numItr, double eps, size_t problem_size);
+  CG(int nitr, double tol, size_t problem_size, const double *soln);
+
+  void solve(const SpMat *A, const double *b, SpMat *lap);
+  
+  void print_results() const;
+
+private:
+  void matrix_vector_product(const SpMat *A, const double *b, double *q);
+  void random_precond_solve(SpMat *lap, const double *b, double *x);
+
+private:
+  int maxSteps;
+  double tolerance;
+  double residual;
+  size_t ps;
+};
+*/
 
 
 #endif

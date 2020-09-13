@@ -1,31 +1,43 @@
 #include <iostream>
 #include <string>
 #include <cstring>
-#include "laplace_3d.hpp"
-#include "mklsolve.hpp"
+#include "sparse.hpp" // define CSR sparse matrix type
+#include "rchol.hpp"
+#include "util.hpp"
 
-template <typename T>
-void print(const T &x, std::string name) {
-  std::cout<<name<<":"<<std::endl;
-  for (size_t i=0; i<x.size(); i++)
-    std::cout<<x[i]<<" ";
-  std::cout<<std::endl;
-}
 
 int main(int argc, char *argv[]) {
-  int n = 3;
+  int n = 3; // DoF in every dimension
   for (int i=0; i<argc; i++) {
     if (!strcmp(argv[i], "-n"))
       n = atoi(argv[i+1]);
   }
-  std::vector<size_t> rowPtr;
-  std::vector<size_t> colIdx;
-  std::vector<double> val;
-  laplace_3d(n, rowPtr, colIdx, val);
-  //print(rowPtr, "rowPtr");
-  //print(colIdx, "colIdx");
-  //print(val, "val");
-  
+ 
+  // SDDM matrix from 3D constant Poisson equation
+  SparseCSR A;
+  A = laplace_3d(n); // n x n x n grid
+
+  // random RHS
+  int N = A.size();
+  std::vector<double> b(N); 
+  rand(b);
+
+  // compute preconditioner
+  SparseCSR G;
+  rchol(A, G);
+  std::cout<<"Fill-in ratio: "<<2*G.nnz()/A.nnz()<<std::endl;
+
+  // solve with PCG
+  double tol = 1e-6;
+  int maxit = 200;
+  double relres;
+  int itr;
+  std::vector<double> x;
+  pcg(A, b, tol, maxit, G, x, relres, itr);
+  std::cout<<"# CG iterations: "<<itr<<std::endl;
+  std::cout<<"Relative residual: "<<relres<<std::endl;
+
+/*
   // upper triangular csr form
   std::vector<size_t> rowPtrU;
   std::vector<size_t> colIdxU;
@@ -56,7 +68,7 @@ int main(int argc, char *argv[]) {
   input.rowIdx = &colIdxL;
   input.val = &valL;
 
-  random_factorization_interface(&input, &outputL);
+  //random_factorization_interface(&input, &outputL);
 
   // test with pcg
   
@@ -74,19 +86,12 @@ int main(int argc, char *argv[]) {
 
 
   CG cg(100, 1e-10, rowPtrU.size() - 1);
-  std::mt19937 gen(std::random_device{}());
-  double *b = new double[rowPtrU.size() - 1]();
-  for(size_t i = 0; i < rowPtrU.size() - 1; i++)
-  {
-    std::uniform_real_distribution<> dis(0.0, 1.0);
-    b[i] = dis(gen);
-  }
-     
-  cg.solve(&A, b, &L);
+
+  cg.solve(&A, b.data(), &L);
 
   mkl_sparse_destroy(A);
   mkl_sparse_destroy(L);
-
+*/
   
 
 

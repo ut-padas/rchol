@@ -1,4 +1,8 @@
-#include "spcol.h"
+#include <assert.h> 
+#include <stdlib.h>
+#include <stdexcept>
+
+#include "spcol.hpp"
 
 
 void sp_copy(const gsl_spmatrix *a, gsl_spmatrix *b);

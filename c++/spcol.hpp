@@ -1,7 +1,5 @@
-#include <assert.h> 
-#include <stdlib.h>
-#include <stdexcept>
-
+#ifndef spcol_hpp
+#define spcol_hpp
 
 /* used to store sparse columns only */
 typedef struct
@@ -25,3 +23,6 @@ gsl_spmatrix * gsl_spmatrix_alloc_nzmax(size_t n1, size_t n2, size_t nzmax);
 void gsl_spmatrix_free(gsl_spmatrix *m);
 void spallocate(gsl_spmatrix *m, size_t nz, size_t nzmax);
 void set_element(gsl_spmatrix *m, size_t idx, size_t row, double data);
+
+
+#endif

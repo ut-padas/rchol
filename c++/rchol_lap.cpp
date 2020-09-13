@@ -1,115 +1,19 @@
-
-#include "mklsolve.hpp"
-
-
-CG::CG(int nitr, double tol, size_t problem_size)
-  : maxSteps(nitr), tolerance(tol), ps(problem_size) {}
-
-
-void CG::matrix_vector_product(const SpMat *A, const double *b, double *q)
-{
-    matrix_descr des;
-    des.type = SPARSE_MATRIX_TYPE_SYMMETRIC;
-    des.mode = SPARSE_FILL_MODE_UPPER;
-    des.diag = SPARSE_DIAG_NON_UNIT;
-    mkl_sparse_d_mv(SPARSE_OPERATION_NON_TRANSPOSE, 1, *A, des, b, 0, q);
-}
-
-void CG::random_precond_solve(SpMat *lap, const double *b, double *ret)
-{
-    // lower solve
-    size_t N = ps;
-    double *x = new double[N]();
-    matrix_descr des;
-    des.type = SPARSE_MATRIX_TYPE_TRIANGULAR;
-    des.mode = SPARSE_FILL_MODE_UPPER;
-    des.diag = SPARSE_DIAG_NON_UNIT;
-
-    mkl_sparse_d_trsv(SPARSE_OPERATION_TRANSPOSE, 1, *lap, des, b, x);
-
- 
-    // upper triangular solve
-    mkl_sparse_d_trsv(SPARSE_OPERATION_NON_TRANSPOSE, 1, *lap, des, x, ret);
-
-
-    delete x;
-}
-
-void CG::solve(const SpMat *A, const double *b, SpMat *lap) 
-{
-    auto start = std::chrono::steady_clock::now();
-    auto end = std::chrono::steady_clock::now();
-    auto elapsed = end - start;
-
-
-    start = std::chrono::steady_clock::now();
-    // set initial
-    double *x = new double[ps]();
-    
-
-    // residual
-    double *r = new double[ps]();
-    cblas_dcopy(ps, b, 1, r, 1);
-    // iterations
-    int n_iters = 0;
-
-
-    // used for storing previous residual and preconditioner applied to r
-    double *prev_r = new double[ps]();
-    double *prev_cond = new double[ps]();
-    double *p = new double[ps]();
-    double *temp = new double[ps]();
-    double *q = new double[ps]();
-    while(cblas_dnrm2(ps, r, 1) > cblas_dnrm2(ps, b, 1) * tolerance && n_iters < this->maxSteps)
-    {
-        
-        this->random_precond_solve(lap, r, temp);
-
-        if (n_iters == 0)
-        {
-            cblas_dcopy(ps, temp, 1, p, 1);
-        }
-        else
-        {
-            double d1 = cblas_ddot(ps, r, 1, temp, 1);
-            double d2 = cblas_ddot(ps, prev_r, 1, prev_cond, 1);
-            cblas_dscal(ps, d1 / d2, p, 1);
-            cblas_daxpy(ps, 1, temp, 1, p, 1);
-        }
-
-        
-        this->matrix_vector_product(A, p, q);
-        double d1 = cblas_ddot(ps, p, 1, r, 1);
-        double d2 = cblas_ddot(ps, p, 1, q, 1);
-        double alpha = d1 / d2;
-        cblas_daxpy(ps, alpha, p, 1, x, 1);
-
-        cblas_dcopy(ps, r, 1, prev_r, 1);
-        cblas_dcopy(ps, temp, 1, prev_cond, 1);
-        cblas_daxpy(ps, -alpha, q, 1, r, 1);
-
-        n_iters++;
-        std::cout << "current iters: " << n_iters << " current residual: " << cblas_dnrm2(ps, r, 1) / cblas_dnrm2(ps, b, 1) << "\n";
-    }
-    end = std::chrono::steady_clock::now();
-    elapsed += end - start;
-    std::cout << "total time: " << std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count() << " \n";
-    this->matrix_vector_product(A, x, q);
-    cblas_daxpy(ps, -1, b, 1, q, 1);
-    std::cout << "pcg reached a relative residual of " << cblas_dnrm2(ps, q, 1) / cblas_dnrm2(ps, b, 1) << " after " << n_iters << " iterations\n";
-    delete x, r, prev_r, prev_cond, p, temp, q;
-}
-
-void CG::print_results() const 
-{
-    
-}
-
-
-
-
-
-
+#include <stdio.h>
+#include <stdlib.h>
+#include <iostream>
+#include <typeinfo>
+#include <random>
+#include <chrono>
+#include <algorithm>
+#include <iostream>
+#include <fstream>
+#include <sys/resource.h>
+#include <string>
+#include <sstream>
+#include <future>
+#include <thread>
+#include <vector>
+#include "rchol_lap.hpp"
 
 
 
@@ -175,7 +79,7 @@ int NUM_THREAD = 0;
 
 
 
-void random_factorization(Sparse_storage_input *input, Sparse_storage_output *output, std::vector<size_t> &result_idx, int thread)
+void rchol_lap(Sparse_storage_input *input, Sparse_storage_output *output, std::vector<size_t> &result_idx, int thread)
 {
     NUM_THREAD = thread;
     cpu_set_t cpuset; 
@@ -221,53 +125,6 @@ void random_factorization(Sparse_storage_input *input, Sparse_storage_output *ou
     
 
 }
-
-void random_factorization_interface(Sparse_storage_input *input, Sparse_storage_output *output)
-{
-    std::vector<size_t> result_idx;
-    result_idx.push_back(0);
-    result_idx.push_back(input->colPtr->size() - 1);
-    random_factorization(input, output, result_idx, 1);
-}
-
-
-void create_sparse(const Sparse_storage_output *output, SpMat &mat)
-{
-
-    size_t N = output->N;
-    size_t *cpt = output->colPtr;
-    size_t *rpt = output->rowIdx;
-    double *datapt = output->val;
-
-    size_t *pointerB = new size_t[N + 1]();
-    size_t *pointerE = new size_t[N + 1]();
-    size_t *update_intend_rpt = new size_t[cpt[N]]();
-    double *update_intend_datapt = new double[cpt[N]]();
-    for(size_t i = 0; i < N; i++)
-    {
-        size_t start = cpt[i];
-        size_t last = cpt[i + 1];
-        pointerB[i] = start;
-        for (size_t j = start; j < last; j++)
-        {
-            update_intend_datapt[j] = datapt[j];
-            update_intend_rpt[j] = rpt[j];
-        }
-        pointerE[i] = last;    
-
-    }
-    
-
-    mkl_sparse_d_create_csr(&mat, SPARSE_INDEX_BASE_ZERO, N, N, pointerB, pointerE, update_intend_rpt, update_intend_datapt);
-
-
-
-    //delete pointerB, pointerE, update_intend_rpt, update_intend_datapt;
-}
-
-
-
-
 
 
 
