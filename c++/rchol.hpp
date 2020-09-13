@@ -3,6 +3,6 @@
 
 #include "sparse.hpp"
 
-void rchol(const SparseCSR A, SparseCSR &G);
+void rchol(const SparseCSR &A, SparseCSR &G);
 
 #endif

@@ -3,7 +3,7 @@
 
 #include <cassert>
 #include <vector>
-
+#include "sparse.hpp"
 
 template <typename T>
 void laplace_3d(size_t n, std::vector<size_t> &rowPtr, std::vector<size_t> &colIdx, 
@@ -63,6 +63,7 @@ void laplace_3d(size_t n, std::vector<size_t> &rowPtr, std::vector<size_t> &colI
   assert(colIdx.size()==7*(n-2)*(n-2)*(n-2)+6*(n-2)*(n-2)*6+5*(n-2)*12+4*1*8);
 #endif
 }
+
 
 #endif
 

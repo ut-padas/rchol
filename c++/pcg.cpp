@@ -7,17 +7,27 @@
 
 typedef sparse_matrix_t SpMat;
 
+#include <iostream>
+#include <chrono>
+
 
 pcg::pcg(const SparseCSR A, const std::vector<double> &b, double tol, int maxit,
     const SparseCSR G, std::vector<double> &x, double &relres, int &itr) {
+
+  this->ps = A.N;
+  this->tolerance = tol;
+  this->maxSteps = maxit;
 
   SpMat Amat, Gmat;
   create_sparse(A.N, A.rowPtr, A.colIdx, A.val, Amat);
   create_sparse(G.N, G.rowPtr, G.colIdx, G.val, Gmat);
   this->iteration(&Amat, b.data(), &Gmat);
+
+  mkl_sparse_destroy(Amat);
+  mkl_sparse_destroy(Gmat);
 }
 
-
+  
 void pcg::create_sparse(size_t N, size_t *cpt, size_t *rpt, double *datapt, SpMat &mat) {
 
     size_t *pointerB = new size_t[N + 1]();
@@ -113,13 +123,15 @@ void pcg::iteration(const SpMat *A, const double *b, SpMat *lap)
 void pcg::matrix_vector_product(const SpMat *A, const double *b, double *q)
 {
     matrix_descr des;
-    des.type = SPARSE_MATRIX_TYPE_SYMMETRIC;
-    des.mode = SPARSE_FILL_MODE_UPPER;
-    des.diag = SPARSE_DIAG_NON_UNIT;
+    des.type = SPARSE_MATRIX_TYPE_GENERAL;
+    //des.type = SPARSE_MATRIX_TYPE_SYMMETRIC;
+    //des.mode = SPARSE_FILL_MODE_UPPER;
+    //des.diag = SPARSE_DIAG_NON_UNIT;
     mkl_sparse_d_mv(SPARSE_OPERATION_NON_TRANSPOSE, 1, *A, des, b, 0, q);
 }
 
-void pcg::random_precond_solve(SpMat *lap, const double *b, double *ret)
+
+void pcg::precond_solve(SpMat *lap, const double *b, double *ret)
 {
     // lower solve
     size_t N = ps;
@@ -136,6 +148,6 @@ void pcg::random_precond_solve(SpMat *lap, const double *b, double *ret)
     mkl_sparse_d_trsv(SPARSE_OPERATION_NON_TRANSPOSE, 1, *lap, des, x, ret);
 
 
-    delete x;
+    delete[] x;
 }
 

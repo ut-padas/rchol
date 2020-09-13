@@ -2,10 +2,12 @@
 #include "util.hpp"
 #include "rchol_lap.hpp"
 
-void rchol(const SparseCSR A, SparseCSR &G) {
+#include <iostream>
+
+void rchol(const SparseCSR &A, SparseCSR &G) {
   size_t N = A.size();
   size_t nnz = A.nnz();
-  std::vector<size_t> rowPtr(A.rowPtr, A.rowPtr+N);
+  std::vector<size_t> rowPtr(A.rowPtr, A.rowPtr+N+1);
   std::vector<size_t> colIdx(A.colIdx, A.colIdx+nnz);
   std::vector<double> val(A.val, A.val+nnz);
   // upper triangular csr form
