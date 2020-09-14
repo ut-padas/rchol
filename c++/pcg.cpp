@@ -54,7 +54,8 @@ void pcg::create_sparse(size_t N, size_t *cpt, size_t *rpt, double *datapt, SpMa
 }
 
 
-void pcg::iteration(const SpMat *A, const double *b, SpMat *lap) 
+void pcg::iteration(const SpMat *A, const double *b, SpMat *lap,
+    std::vector<double> &x, double &relres, int &itr) 
 {
     auto start = std::chrono::steady_clock::now();
     auto end = std::chrono::steady_clock::now();
@@ -63,8 +64,7 @@ void pcg::iteration(const SpMat *A, const double *b, SpMat *lap)
 
     start = std::chrono::steady_clock::now();
     // set initial
-    double *x = new double[ps]();
-    
+    x.resize(ps);
 
     // residual
     double *r = new double[ps]();
@@ -101,22 +101,24 @@ void pcg::iteration(const SpMat *A, const double *b, SpMat *lap)
         double d1 = cblas_ddot(ps, p, 1, r, 1);
         double d2 = cblas_ddot(ps, p, 1, q, 1);
         double alpha = d1 / d2;
-        cblas_daxpy(ps, alpha, p, 1, x, 1);
+        cblas_daxpy(ps, alpha, p, 1, x.data(), 1);
 
         cblas_dcopy(ps, r, 1, prev_r, 1);
         cblas_dcopy(ps, temp, 1, prev_cond, 1);
         cblas_daxpy(ps, -alpha, q, 1, r, 1);
 
         n_iters++;
-        std::cout << "current iters: " << n_iters << " current residual: " << cblas_dnrm2(ps, r, 1) / cblas_dnrm2(ps, b, 1) << "\n";
+        //std::cout << "current iters: " << n_iters << " current residual: " << cblas_dnrm2(ps, r, 1) / cblas_dnrm2(ps, b, 1) << "\n";
     }
     end = std::chrono::steady_clock::now();
     elapsed += end - start;
-    std::cout << "total time: " << std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count() << " \n";
-    this->matrix_vector_product(A, x, q);
+    //std::cout << "total time: " << std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count() << " \n";
+    this->matrix_vector_product(A, x.data(), q);
     cblas_daxpy(ps, -1, b, 1, q, 1);
-    std::cout << "pcg reached a relative residual of " << cblas_dnrm2(ps, q, 1) / cblas_dnrm2(ps, b, 1) << " after " << n_iters << " iterations\n";
-    delete x, r, prev_r, prev_cond, p, temp, q;
+    relres = cblas_dnrm2(ps, q, 1) / cblas_dnrm2(ps, b, 1);
+    itr = n_iters;
+    //std::cout << "pcg reached a relative residual of " << cblas_dnrm2(ps, q, 1) / cblas_dnrm2(ps, b, 1) << " after " << n_iters << " iterations\n";
+    delete r, prev_r, prev_cond, p, temp, q;
 }
 
 

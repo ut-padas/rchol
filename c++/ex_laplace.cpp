@@ -1,4 +1,5 @@
 #include <iostream>
+#include <iomanip>
 #include <string>
 #include <cstring>
 #include "sparse.hpp" // define CSR sparse matrix type
@@ -13,6 +14,7 @@ int main(int argc, char *argv[]) {
     if (!strcmp(argv[i], "-n"))
       n = atoi(argv[i+1]);
   }
+  std::cout<<std::setprecision(3);
  
   // SDDM matrix from 3D constant Poisson equation
   SparseCSR A;
@@ -35,8 +37,8 @@ int main(int argc, char *argv[]) {
   int itr;
   std::vector<double> x;
   pcg(A, b, tol, maxit, G, x, relres, itr);
-  //std::cout<<"# CG iterations: "<<itr<<std::endl;
-  //std::cout<<"Relative residual: "<<relres<<std::endl;
+  std::cout<<"# CG iterations: "<<itr<<std::endl;
+  std::cout<<"Relative residual: "<<relres<<std::endl;
 
   return 0;
 }
