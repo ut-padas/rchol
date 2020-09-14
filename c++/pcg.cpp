@@ -21,7 +21,7 @@ pcg::pcg(const SparseCSR A, const std::vector<double> &b, double tol, int maxit,
   SpMat Amat, Gmat;
   create_sparse(A.N, A.rowPtr, A.colIdx, A.val, Amat);
   create_sparse(G.N, G.rowPtr, G.colIdx, G.val, Gmat);
-  this->iteration(&Amat, b.data(), &Gmat);
+  this->iteration(&Amat, b.data(), &Gmat, x, relres, itr);
 
   mkl_sparse_destroy(Amat);
   mkl_sparse_destroy(Gmat);
