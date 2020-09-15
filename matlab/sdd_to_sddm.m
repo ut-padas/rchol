@@ -5,6 +5,24 @@ function [sddm] = sdd_to_sddm(original)
     
     % find positive and negative spots
     nodiag = original - di;
+    
+    % N and P matrices
+    pos = nodiag;
+    neg = nodiag;
+    pos(pos < 0) = 0;
+    neg(neg > 0) = 0;
+    
+    sddm = [di + neg, -pos; 
+     -pos, di + neg];
+end
+
+%{
+function [sddm] = sdd_to_sddm(original)
+    % diagonal
+    di = diag(diag(original));
+    
+    % find positive and negative spots
+    nodiag = original - di;
     posidx = find(nodiag > 0);
     negidx = find(nodiag < 0);
     
@@ -17,3 +35,4 @@ function [sddm] = sdd_to_sddm(original)
     sddm = [di + neg, -pos; 
      -pos, di + neg];
 end
+%}
