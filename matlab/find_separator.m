@@ -15,9 +15,6 @@ function [p, val, separator] = find_separator(logic, depth, target)
     else
         
         sep = metis_separator(logic);
-        if depth == 1
-            sep(end) = 2;
-        end
         
         l = find(sep==0);
         r = find(sep==1);
