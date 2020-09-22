@@ -6,6 +6,8 @@ function [p, val, separator] = find_separator(logic, depth, target)
         p = amd(logic);
         separator = [];
     elseif (length(logic) <= 1)
+        ME = MException('Too many threads requested for parallel');
+        throw(ME);
         size = length(logic);
         [p1, v1] = find_separator([], depth + 1, target);
         [p2, v2] = find_separator(zeros(size, size), depth + 1, target);

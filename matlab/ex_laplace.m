@@ -1,14 +1,21 @@
 % 3D constant Poisson equation with dirichlet boundary
-n = 16;
+n = 30;
 A = laplace_3d(n);
 
 % random RHS
 b = rand(size(A, 1), 1);
 
-% compute preconditioner after reordering
+% compute preconditioner after reordering (single thread version)
 p = amd(A);
-G = rchol(A(p,p));
+G = rchol(A, p);
 fprintf('fill-in ratio: %.2e\n', 2*nnz(G)/nnz(A))
+
+
+% compute preconditioner after reordering (multi thread version)
+%{
+[G, p] = rchol(A, [], 2);
+fprintf('fill-in ratio: %.2e\n', 2*nnz(G)/nnz(A))
+%}
 
 % solve with PCG
 tol = 1e-6;
