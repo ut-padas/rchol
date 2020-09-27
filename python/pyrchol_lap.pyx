@@ -18,6 +18,9 @@ cdef extern from "rchol_lap.cpp":
         double *ret_diag
         stdint.uint64_t nsize
 
+cdef extern from "metis_separator.cpp":
+    stdint.uint64_t * metis_separator(stdint.uint64_t length, stdint.uint64_t *rpt1, stdint.uint64_t *cpt1)
+
 
 cpdef rchol_lap_cpp(M, matrix_row, thread, result_idx):
 
@@ -53,8 +56,8 @@ cdef extern from "spcol.c":
 
 
 # calculates the separator
-"""
-cpdef recursive_separator1(logic, depth, target):
+
+cpdef find_separator(logic, depth, target):
     cdef stdint.uint64_t *sep_ptr
     cdef np.ndarray[np.uint64_t, ndim=1] row = logic.indices.astype(dtype=np.uint64)
     cdef np.ndarray[np.uint64_t, ndim=1] col = logic.indptr.astype(dtype=np.uint64)
@@ -65,15 +68,16 @@ cpdef recursive_separator1(logic, depth, target):
         separator = np.zeros(0, dtype=np.uint64)
         return p, val, separator
     elif (logic.shape[0] <= 1):
+        raise Exception("too many threads requested") 
         size = logic.shape[0]
-        p1, v1 = recursive_separator1([], depth + 1, target)
-        p2, v2 = recursive_separator1(csr_matrix((size, size)), depth + 1, target)
+        p1, v1 = find_separator([], depth + 1, target)
+        p2, v2 = find_separator(csr_matrix((size, size)), depth + 1, target)
         val = np.append(v1, np.append(v2, 0))
         p = np.append(p1, p2)
         separator = np.zeros(0, dtype=np.uint64)
         return p, val, separator
     else:
-        sep_ptr = find_separator(logic.shape[0], &(row[0]), &(col[0]))
+        sep_ptr = metis_separator(logic.shape[0], &(row[0]), &(col[0]))
         sep = np.asarray(<np.uint64_t[:logic.shape[0]]> sep_ptr)
 
         if depth == 1:
@@ -86,13 +90,13 @@ cpdef recursive_separator1(logic, depth, target):
         newright = logic[r[:, None], r]
         
 
-        [p1, v1, s1] = recursive_separator1(newleft, depth + 1, target)
-        [p2, v2, s2] = recursive_separator1(newright, depth + 1, target)
+        [p1, v1, s1] = find_separator(newleft, depth + 1, target)
+        [p2, v2, s2] = find_separator(newright, depth + 1, target)
         separator = np.append(l[s1], np.append(r[s2], s))
         val = np.append(v1, np.append(v2, s.shape[0]))
         p = np.append(l[p1], np.append(r[p2], s))
         return p, val, separator
-"""
+
 
 
 
