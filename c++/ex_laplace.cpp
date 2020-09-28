@@ -10,9 +10,12 @@
 
 int main(int argc, char *argv[]) {
   int n = 3; // DoF in every dimension
+  int threads = 1;
   for (int i=0; i<argc; i++) {
     if (!strcmp(argv[i], "-n"))
       n = atoi(argv[i+1]);
+    if (!strcmp(argv[i], "-t"))
+      threads = atoi(argv[i+1]);
   }
   std::cout<<std::setprecision(3);
  
@@ -27,8 +30,8 @@ int main(int argc, char *argv[]) {
 
 
 // compute preconditioner (single thread) and solve 
-/*
-  
+
+  /*
   SparseCSR G;
   rchol(A, G);
   std::cout<<"Fill-in ratio: "<<2.*G.nnz()/A.nnz()<<std::endl;
@@ -43,19 +46,20 @@ int main(int argc, char *argv[]) {
   pcg(A, b, tol, maxit, G, x, relres, itr);
   std::cout<<"# CG iterations: "<<itr<<std::endl;
   std::cout<<"Relative residual: "<<relres<<std::endl;
-*/
 
+*/
   // compute preconditioner (multithread) and solve
+
   SparseCSR G;
   std::vector<size_t> permutation;
-  int threads = 2;
+  
   rchol(A, G, permutation, threads);
   std::cout<<"Fill-in ratio: "<<2.*G.nnz()/A.nnz()<<std::endl;
   std::vector<size_t> rowPtr;
   std::vector<size_t> colIdx;
   std::vector<double> val;
   permute_matrix(A, rowPtr, colIdx, val, permutation);
-  SparseCSR Aperm(rowPtr, colIdx, val, true);
+  SparseCSR Aperm(rowPtr, colIdx, val, false);
 
   // solve with PCG
   double tol = 1e-6;
@@ -67,6 +71,6 @@ int main(int argc, char *argv[]) {
   std::cout<<"# CG iterations: "<<itr<<std::endl;
   std::cout<<"Relative residual: "<<relres<<std::endl;
 
+
   return 0;
 }
-

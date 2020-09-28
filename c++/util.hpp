@@ -8,7 +8,7 @@
 #include "sparse.hpp"
 #include <algorithm>
 #include "metis.h"
-
+#include <iostream>
 
 
 struct Separator_info {

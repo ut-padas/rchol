@@ -1,6 +1,7 @@
 
 #include "util.hpp"
 #include "laplace_3d.hpp"
+#include <iostream>
 
 SparseCSR laplace_3d(int n) {
   std::vector<size_t> rowPtr, colIdx;
@@ -30,6 +31,15 @@ Partition_info determine_parition(size_t *sep_idx, size_t N){
 
 
 SparseCSR get_submatrix(std::vector<size_t> &par, size_t *sep_idx, const SparseCSR &A){
+   
+  std::vector<size_t> transp;
+  transp.resize(A.N, 0);
+  
+  for(size_t i = 0; i < par.size(); i++)
+  {
+    transp[par[i]] = i;
+  }
+  
   std::vector<size_t> rowPtr;
   std::vector<size_t> colIdx;
   std::vector<double> val;
@@ -44,7 +54,7 @@ SparseCSR get_submatrix(std::vector<size_t> &par, size_t *sep_idx, const SparseC
     {
       if(sep_idx[A.colIdx[j]] == sep_idx[par[0]])
       {
-        colIdx.push_back(A.colIdx[j]);
+        colIdx.push_back(transp[A.colIdx[j]]);
         val.push_back(A.val[j]);
         rowPtr[tempsize]++;
       }
@@ -156,6 +166,7 @@ Separator_info find_separator(const SparseCSR &A, int depth, int target){
 
   if(depth == target)
   {
+    
     std::vector<size_t> *val = new std::vector<size_t>();
     val->push_back(A.N);
     std::vector<size_t> *p = new std::vector<size_t>();
@@ -176,7 +187,7 @@ Separator_info find_separator(const SparseCSR &A, int depth, int target){
     Partition_info par = determine_parition(sep_idx, A.N);
     SparseCSR newleft = get_submatrix(*(par.zero_partition), sep_idx, A);
     SparseCSR newright = get_submatrix(*(par.one_partition), sep_idx, A);
-
+    
     Separator_info linfo = find_separator(newleft, depth + 1, target);
     Separator_info rinfo = find_separator(newright, depth + 1, target);
 
