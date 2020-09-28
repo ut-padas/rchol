@@ -5,7 +5,7 @@
 
 
 void rchol_lap(std::vector<size_t>&, std::vector<size_t>&, std::vector<double>&, 
-    size_t*&, size_t*&, double*&, size_t&);
+    size_t*&, size_t*&, double*&, size_t&, std::vector<size_t>&);
 
 
 #endif

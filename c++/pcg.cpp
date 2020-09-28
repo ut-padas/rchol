@@ -50,7 +50,7 @@ void pcg::create_sparse(size_t N, size_t *cpt, size_t *rpt, double *datapt, SpMa
     
     mkl_sparse_d_create_csr(&mat, SPARSE_INDEX_BASE_ZERO, N, N, pointerB, pointerE, update_intend_rpt, update_intend_datapt);
 
-    //delete pointerB, pointerE, update_intend_rpt, update_intend_datapt;
+    //delete[] pointerB, pointerE, update_intend_rpt, update_intend_datapt;
 }
 
 
@@ -118,7 +118,12 @@ void pcg::iteration(const SpMat *A, const double *b, SpMat *lap,
     relres = cblas_dnrm2(ps, q, 1) / cblas_dnrm2(ps, b, 1);
     itr = n_iters;
     //std::cout << "pcg reached a relative residual of " << cblas_dnrm2(ps, q, 1) / cblas_dnrm2(ps, b, 1) << " after " << n_iters << " iterations\n";
-    delete r, prev_r, prev_cond, p, temp, q;
+    delete[] r;
+    delete[] prev_r;
+    delete[] prev_cond;
+    delete[] p;
+    delete[] temp;
+    delete[] q;
 }
 
 

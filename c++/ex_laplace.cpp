@@ -25,10 +25,14 @@ int main(int argc, char *argv[]) {
   std::vector<double> b(N); 
   rand(b);
 
-  // compute preconditioner
+
+// compute preconditioner (single thread) and solve 
+/*
+  
   SparseCSR G;
   rchol(A, G);
   std::cout<<"Fill-in ratio: "<<2.*G.nnz()/A.nnz()<<std::endl;
+
 
   // solve with PCG
   double tol = 1e-6;
@@ -37,6 +41,29 @@ int main(int argc, char *argv[]) {
   int itr;
   std::vector<double> x;
   pcg(A, b, tol, maxit, G, x, relres, itr);
+  std::cout<<"# CG iterations: "<<itr<<std::endl;
+  std::cout<<"Relative residual: "<<relres<<std::endl;
+*/
+
+  // compute preconditioner (multithread) and solve
+  SparseCSR G;
+  std::vector<size_t> permutation;
+  int threads = 2;
+  rchol(A, G, permutation, threads);
+  std::cout<<"Fill-in ratio: "<<2.*G.nnz()/A.nnz()<<std::endl;
+  std::vector<size_t> rowPtr;
+  std::vector<size_t> colIdx;
+  std::vector<double> val;
+  permute_matrix(A, rowPtr, colIdx, val, permutation);
+  SparseCSR Aperm(rowPtr, colIdx, val, true);
+
+  // solve with PCG
+  double tol = 1e-6;
+  int maxit = 200;
+  double relres;
+  int itr;
+  std::vector<double> x;
+  pcg(Aperm, permute_vector(b, permutation), tol, maxit, G, x, relres, itr);
   std::cout<<"# CG iterations: "<<itr<<std::endl;
   std::cout<<"Relative residual: "<<relres<<std::endl;
 

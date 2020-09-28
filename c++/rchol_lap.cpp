@@ -136,13 +136,12 @@ void rchol_lap(Sparse_storage_input *input, Sparse_storage_output *output, std::
 
 
 void rchol_lap(std::vector<size_t> &rowPtrA, std::vector<size_t> &colIdxA, 
-    std::vector<double> &valA, size_t* &colPtrG, size_t* &rowIdxG, double* &valG, size_t &sizeG) {
+    std::vector<double> &valA, size_t* &colPtrG, size_t* &rowIdxG, double* &valG, size_t &sizeG, std::vector<size_t> &idx) {
   Sparse_storage_input input;
   input.colPtr = &rowPtrA;
   input.rowIdx = &colIdxA;
   input.val = &valA;
   Sparse_storage_output output;
-  std::vector<size_t> idx = {0, rowPtrA.size()-1};
   rchol_lap(&input, &output, idx, 1);
   colPtrG = output.colPtr;
   rowIdxG = output.rowIdx;
