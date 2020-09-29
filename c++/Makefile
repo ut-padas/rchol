@@ -1,16 +1,28 @@
 
-CFLAG = -Wall -O3
-LDFLAG = -lmkl_intel_ilp64 -mkl
+METIS_INC ?= $(TACC_METIS_INC)
+METIS_LIB ?= $(TACC_METIS_LIB)
+
+# METIS is required
+ifeq ($(METIS_INC),)
+$(error METIS_INC (metis header directory) is not set)
+endif
+ifeq ($(METIS_LIB),)
+$(error METIS_LIB (metis library directory) is not set)
+endif
+
+
+CFLAG = -Wall -O3 -I$(METIS_INC)
+LDFLAG = -lmkl_intel_ilp64 -mkl -L$(METIS_LIB) -lmetis
 
 all: driver
 
 objects := $(patsubst %.cpp,%.o,$(wildcard *.cpp))
 
 %.o: %.cpp %.hpp
-	icc $(CFLAG) -c $< -o $@
+	icc -c $< -o $@ $(CFLAG)
 
 %.o: %.cpp
-	icc $(CFLAG) -c $< -o $@
+	icc -c $< -o $@ $(CFLAG)
 
 driver: $(objects)
 	icpc $^ -o $@ $(CFLAG) $(LDFLAG)
