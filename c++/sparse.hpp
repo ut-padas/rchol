@@ -10,6 +10,7 @@ public:
   SparseCSR();
   SparseCSR(const std::vector<size_t>&, const std::vector<size_t>&, const std::vector<double>&, 
       bool mem=true);
+  SparseCSR(const SparseCSR &); // deep copy
 
   size_t size() const;
   size_t nnz() const;

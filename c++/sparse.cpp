@@ -24,6 +24,20 @@ SparseCSR::SparseCSR(const std::vector<size_t> &rowPtrA, const std::vector<size_
   this->ownMemory = mem;
 }
 
+SparseCSR::SparseCSR(const SparseCSR &A) {
+  this->N = A.size();
+  this->rowPtr = new size_t[N+1];
+
+  size_t nnz = A.nnz();
+  this->colIdx = new size_t[nnz];
+  this->val = new double[nnz];
+  std::copy(A.rowPtr, A.rowPtr+N+1, this->rowPtr);
+  std::copy(A.colIdx, A.colIdx+nnz, this->colIdx);
+  std::copy(A.val, A.val+nnz, this->val);
+
+  this->ownMemory = true;
+}
+
 size_t SparseCSR::size() const {
   return N;
 }

@@ -70,7 +70,7 @@ SparseCSR get_submatrix(std::vector<size_t> &par, size_t *sep_idx, const SparseC
 
 
 // permute the matrix
-void permute_matrix(const SparseCSR &A, std::vector<size_t> &rowPtr, std::vector<size_t> &colIdx, 
+void reorder(const SparseCSR &A, std::vector<size_t> &rowPtr, std::vector<size_t> &colIdx, 
   std::vector<double> &val, std::vector<size_t> &permutation){
   std::vector<size_t> transp;
   transp.resize(permutation.size());
@@ -198,8 +198,8 @@ Separator_info find_separator(const SparseCSR &A, int depth, int target){
     val->push_back(par.second_partition->size());
 
     std::vector<size_t> *p = new std::vector<size_t>();
-    std::vector<size_t> l = permute_vector(*(par.zero_partition), *(linfo.p));
-    std::vector<size_t> r = permute_vector(*(par.one_partition), *(rinfo.p));
+    std::vector<size_t> l = reorder(*(par.zero_partition), *(linfo.p));
+    std::vector<size_t> r = reorder(*(par.one_partition), *(rinfo.p));
     p->reserve(l.size() + r.size() + par.second_partition->size());
     p->insert(p->end(), l.begin(), l.end());
     p->insert(p->end(), r.begin(), r.end());

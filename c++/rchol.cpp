@@ -90,7 +90,7 @@ void rchol(const SparseCSR &A, SparseCSR &G, std::vector<size_t> &permutation, i
     result_idx.push_back(separator.val->at(i) + result_idx[result_idx.size() - 1]);
   }
   result_idx[result_idx.size() - 1]++;
-  permute_matrix(A, rowPtr, colIdx, val, permutation);
+  reorder(A, rowPtr, colIdx, val, permutation);
   delete separator.p;
   delete separator.val;
 

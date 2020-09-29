@@ -11,8 +11,8 @@ typedef sparse_matrix_t SpMat;
 #include <chrono>
 
 
-pcg::pcg(const SparseCSR A, const std::vector<double> &b, double tol, int maxit,
-    const SparseCSR G, std::vector<double> &x, double &relres, int &itr) {
+pcg::pcg(const SparseCSR &A, const std::vector<double> &b, double tol, int maxit,
+    const SparseCSR &G, std::vector<double> &x, double &relres, int &itr) {
 
   this->ps = A.N;
   this->tolerance = tol;

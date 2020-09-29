@@ -51,15 +51,15 @@ int main(int argc, char *argv[]) {
   // compute preconditioner (multithread) and solve
 
   SparseCSR G;
-  std::vector<size_t> permutation;
+  std::vector<size_t> P;
   
-  rchol(A, G, permutation, threads);
+  rchol(A, G, P, threads);
   std::cout<<"Fill-in ratio: "<<2.*G.nnz()/A.nnz()<<std::endl;
   std::vector<size_t> rowPtr;
   std::vector<size_t> colIdx;
   std::vector<double> val;
-  permute_matrix(A, rowPtr, colIdx, val, permutation);
-  SparseCSR Aperm(rowPtr, colIdx, val, false);
+  reorder(A, rowPtr, colIdx, val, P);
+  SparseCSR Aperm(rowPtr, colIdx, val);
 
   // solve with PCG
   double tol = 1e-6;
@@ -67,7 +67,7 @@ int main(int argc, char *argv[]) {
   double relres;
   int itr;
   std::vector<double> x;
-  pcg(Aperm, permute_vector(b, permutation), tol, maxit, G, x, relres, itr);
+  pcg(Aperm, reorder(b, P), tol, maxit, G, x, relres, itr);
   std::cout<<"# CG iterations: "<<itr<<std::endl;
   std::cout<<"Relative residual: "<<relres<<std::endl;
 
