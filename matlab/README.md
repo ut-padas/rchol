@@ -1,3 +1,31 @@
+# rchol
+randomized Cholesky factorization
+
+# Syntax and Description
+G = rchol(A)
+
+- input **A**: an SDDM sparse matrix 
+- output **G**: a lower triangular matrix
+
+This is a sequntial routine computing an approximate Cholesky factorization `G*G'~A`. Reordering of the input sparse matrix is recommended before calling this routine. See `ex_laplace.m` for an example.
+
+
+[G, p] = rchol(A, nthreads)
+
+- input **A**: an SDDM sparse matrix 
+- input **nthreads**: number of threads
+- output **G**: a lower triangular matrix
+- output **p**: a permutation vector
+
+This is a *parallel* routine computing an approximate Cholesky factorization `G*G'~A(p,p)`. The input sparse matrix is reordered inside the routine, and the permutation vector is returned as an output. See `ex_laplace_parallel.m` for an example.
+
+
+# SDD matrix
+For an SDD sparse matrix, we first create an extended SDDM matrix and then call `rchol`. See `ex_hyperbolic.m` for an example.
+
+
+<!--
+
 Matlab interface:
 
 rchol inputs:
@@ -12,3 +40,7 @@ In the special case that the input thread number is 1, the method will be equiva
 rchol outputs:
 
 rchol returns two outputs. The first output is the Cholesky factor, the second output is the permutation used within rchol. If the thread number is not supplied or is equal to 1, then the returned permuation will simply be a vector from 1 to n, where n is the length of the matrix. However, if thread number is anything other than 1, meaning that parallelization is used, then the function will permute the given SDDM matrix first before factorization. This is necessary because in order to multi-thread the method, we would need to do graph partitioning. The permutation used internally within the function will be returned. Hence, when using pcg, the users will need to supply it with a permuted system, in which the permutation used should be the one returned by rchol.
+-->
+
+
+

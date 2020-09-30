@@ -1,5 +1,5 @@
 % 3D constant Poisson equation with dirichlet boundary
-n = 128;
+n = 64;
 A = laplace_3d(n);
 
 % random RHS
@@ -7,7 +7,7 @@ b = rand(size(A, 1), 1);
 
 % compute preconditioner after reordering
 thread = 2;
-[G, p] = rchol_parallel(A, thread);
+[G, p] = rchol(A, thread);
 fprintf('fill-in ratio: %.2e\n', 2*nnz(G)/nnz(A))
 
 % solve with PCG
