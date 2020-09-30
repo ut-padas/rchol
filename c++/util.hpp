@@ -182,19 +182,24 @@ void convert_to_laplace(const std::vector<size_t> &rowPtr, const std::vector<siz
 
 
 
+template <typename T>
+void reorder(std::vector<T> &x, std::vector<size_t> &p, std::vector<T> &xp)
+{
+  xp.reserve(p.size());
+  for(size_t i = 0; i < x.size(); i++)
+  {
+    xp.push_back(x[ p[i] ]);
+  }
+}
+
 
 template <typename T>
 std::vector<T> reorder(std::vector<T> &vec, std::vector<size_t> &p)
 {
   std::vector<T> ret;
-  ret.reserve(p.size());
-  for(size_t i = 0; i < vec.size(); i++)
-  {
-    ret.push_back(vec[p[i]]);
-  }
+  reorder(vec, p, ret);
   return ret;
 }
-
 
 
 

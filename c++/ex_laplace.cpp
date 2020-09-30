@@ -56,16 +56,15 @@ int main(int argc, char *argv[]) {
   std::cout<<"Fill-in ratio: "<<2.*G.nnz()/A.nnz()<<std::endl;
 
   // solve the reordered problem with PCG
-  SparseCSR Aperm;
-  reorder(A, P, Aperm);
-  
+  SparseCSR Aperm; reorder(A, P, Aperm);
+  std::vector<double> bperm; reorder(b, P, bperm);
+    
   double tol = 1e-6;
   int maxit = 200;
   double relres;
   int itr;
-  std::vector<double> x; // solution
-
-  pcg(Aperm, reorder(b, P), tol, maxit, G, x, relres, itr);
+  std::vector<double> x;
+  pcg(Aperm, bperm, tol, maxit, G, x, relres, itr);
   std::cout<<"# CG iterations: "<<itr<<std::endl;
   std::cout<<"Relative residual: "<<relres<<std::endl;
 
