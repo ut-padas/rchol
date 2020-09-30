@@ -2,20 +2,23 @@
 randomized Cholesky factorization
 
 # Syntax and Description
+```matlab
 G = rchol(A)
+```
 
-- input **A**: an SDDM sparse matrix 
-- output **G**: a lower triangular matrix
+- **A**: SDDM sparse matrix 
+- **G**: lower triangular matrix
 
 This is a sequntial routine computing an approximate Cholesky factorization `G*G'~A`. Reordering of the input sparse matrix is recommended before calling this routine. See `ex_laplace.m` for an example.
 
-
+```matlab
 [G, p] = rchol(A, nthreads)
+```
 
-- input **A**: an SDDM sparse matrix 
-- input **nthreads**: number of threads
-- output **G**: a lower triangular matrix
-- output **p**: a permutation vector
+- **A**: SDDM sparse matrix 
+- **nthreads**: number of threads
+- **G**: lower triangular matrix
+- **p**: permutation vector
 
 This is a *parallel* routine computing an approximate Cholesky factorization `G*G'~A(p,p)`. The input sparse matrix is reordered inside the routine, and the permutation vector is returned as an output. See `ex_laplace_parallel.m` for an example.
 
