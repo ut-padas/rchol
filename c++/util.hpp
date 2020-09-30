@@ -60,11 +60,18 @@ struct Rearrange {
 
 
 SparseCSR laplace_3d(int);
+
 Partition_info determine_parition(size_t *sep_idx, size_t N);
+
 SparseCSR get_submatrix(std::vector<size_t> &par, size_t *sep_idx, const SparseCSR &A);
+
+void reorder(const SparseCSR &A, const std::vector<size_t> &permutation, SparseCSR &);
+
 void reorder(const SparseCSR &A, std::vector<size_t> &rowPtr, std::vector<size_t> &colIdx, 
-  std::vector<double> &val, std::vector<size_t> &permutation);
+      std::vector<double> &val, const std::vector<size_t> &permutation);
+
 size_t * metis_separator(const SparseCSR &A);
+
 Separator_info find_separator(const SparseCSR &A, int depth, int target);
 
 

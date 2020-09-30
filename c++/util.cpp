@@ -71,7 +71,7 @@ SparseCSR get_submatrix(std::vector<size_t> &par, size_t *sep_idx, const SparseC
 
 // permute the matrix
 void reorder(const SparseCSR &A, std::vector<size_t> &rowPtr, std::vector<size_t> &colIdx, 
-  std::vector<double> &val, std::vector<size_t> &permutation){
+  std::vector<double> &val, const std::vector<size_t> &permutation){
   std::vector<size_t> transp;
   transp.resize(permutation.size());
   size_t N = permutation.size();
@@ -102,14 +102,16 @@ void reorder(const SparseCSR &A, std::vector<size_t> &rowPtr, std::vector<size_t
       colIdx.push_back(arrange[j - first].row);
       val.push_back(arrange[j - first].data);
     }
-
-
-  }
-
-
-  
+  } 
 }
 
+void reorder(const SparseCSR &A, const std::vector<size_t> &P, SparseCSR &B) {
+  std::vector<size_t> rowPtr;
+  std::vector<size_t> colIdx;
+  std::vector<double> val;
+  reorder(A, rowPtr, colIdx, val, P);
+  B.init(rowPtr, colIdx, val);
+}
 
 
 size_t * metis_separator(const SparseCSR &A)

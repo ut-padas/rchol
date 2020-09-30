@@ -48,25 +48,23 @@ int main(int argc, char *argv[]) {
   std::cout<<"Relative residual: "<<relres<<std::endl;
 
 */
-  // compute preconditioner (multithread) and solve
 
+  // compute preconditioner (multithread) and solve
   SparseCSR G;
   std::vector<size_t> P;
-  
   rchol(A, G, P, threads);
   std::cout<<"Fill-in ratio: "<<2.*G.nnz()/A.nnz()<<std::endl;
-  std::vector<size_t> rowPtr;
-  std::vector<size_t> colIdx;
-  std::vector<double> val;
-  reorder(A, rowPtr, colIdx, val, P);
-  SparseCSR Aperm(rowPtr, colIdx, val);
 
-  // solve with PCG
+  // solve the reordered problem with PCG
+  SparseCSR Aperm;
+  reorder(A, P, Aperm);
+  
   double tol = 1e-6;
   int maxit = 200;
   double relres;
   int itr;
-  std::vector<double> x;
+  std::vector<double> x; // solution
+
   pcg(Aperm, reorder(b, P), tol, maxit, G, x, relres, itr);
   std::cout<<"# CG iterations: "<<itr<<std::endl;
   std::cout<<"Relative residual: "<<relres<<std::endl;
