@@ -19,6 +19,7 @@ cpdef find_separator(logic, depth, target):
         return p, val, separator
     elif (logic.shape[0] <= 1):
         raise Exception("too many threads requested") 
+        '''
         size = logic.shape[0]
         p1, v1 = find_separator([], depth + 1, target)
         p2, v2 = find_separator(csr_matrix((size, size)), depth + 1, target)
@@ -26,6 +27,7 @@ cpdef find_separator(logic, depth, target):
         p = np.append(p1, p2)
         separator = np.zeros(0, dtype=np.uint64)
         return p, val, separator
+        '''
     else:
         sep_ptr = metis_separator(logic.shape[0], &(row[0]), &(col[0]))
         sep = np.asarray(<np.uint64_t[:logic.shape[0]]> sep_ptr)
