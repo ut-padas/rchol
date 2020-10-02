@@ -19,5 +19,5 @@ def rchol(A, threads):
   edges = -1*triu(Lap, format='csr')
   L, D = rchol_lap_cpp(edges, edges.shape[0] - 1, threads, result_idx)
   Gt = L * diags(np.sqrt(D))
-  return p, Gt.transpose().tocsr()
+  return Gt.transpose().tocsr(), p
 
