@@ -15,7 +15,8 @@ N = A.shape[0]
 b = np.random.rand(N)
 
 # compute preconditioner after reordering (multi thread)
-p, G = rchol(A, 2)
+nthreads = 2
+p, G = rchol(A, nthreads)
 Aperm = A[p[:, None], p]
 print('fill-in ratio: {:.2}'.format(2*G.nnz/A.nnz))
 
