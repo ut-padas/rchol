@@ -1,3 +1,5 @@
+import sys
+sys.path.append('rchol/')
 import numpy as np 
 from numpy.linalg import norm
 from rchol_parallel import *

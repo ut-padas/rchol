@@ -26,14 +26,14 @@ DIR = rchol_lap
 pyrchol_lap.so: pyrchol_lap.cpp
 	g++ $< -I$(PYTHON_INC) -I$(DIR) -fPIC -shared -O3 -o $@
 
-find_separator.so: find_separator.cpp metis_separator.cpp
-	g++ $< -I$(PYTHON_INC) -I$(METIS_INC) -L$(METIS_LIB) -lmetis -fPIC -shared -O3 -o $@
+find_separator.so: find_separator.cpp
+	g++ $< -I$(PYTHON_INC) -I$(DIR) -I$(METIS_INC) -L$(METIS_LIB) -lmetis -fPIC -shared -O3 -o $@
 
 pyrchol_lap.cpp: $(DIR)/pyrchol_lap.pyx
 	cython $< --cplus -3 -o $@
 
-find_separator.cpp: find_separator.pyx
-	cython $< --cplus -3
+find_separator.cpp: $(DIR)/find_separator.pyx
+	cython $< --cplus -3 -o $@
 
 run: pyrchol_lap.so
 	python3 ex_laplace.py
