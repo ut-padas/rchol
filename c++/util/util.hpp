@@ -5,9 +5,9 @@
 #include <vector>
 #include <random>
 #include <stdexcept>
-#include "sparse.hpp"
 #include <algorithm>
 #include <iostream>
+#include "../sparse.hpp"
 
 
 struct Rearrange {

@@ -10,7 +10,7 @@
 
 int main(int argc, char *argv[]) {
   int n = 3; // DoF in every dimension
-  int threads = 1;
+  int threads = 2;
   for (int i=0; i<argc; i++) {
     if (!strcmp(argv[i], "-n"))
       n = atoi(argv[i+1]);
