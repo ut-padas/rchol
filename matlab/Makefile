@@ -1,8 +1,8 @@
 
 MFILE = rchol_lap.mexa64
 
-METIS_INC =
-METIS_LIB =
+METIS_INC = 
+METIS_LIB = 
 
 # METIS is required for parallel
 ifneq ($(and $(METIS_INC),$(METIS_LIB)),)
