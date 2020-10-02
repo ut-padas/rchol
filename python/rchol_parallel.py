@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.sparse import triu, diags
 from pyrchol_lap import *
+from find_separator import *
 from util import *
 import math
 
