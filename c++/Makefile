@@ -1,26 +1,39 @@
+EXE = driver driver_parallel
+OBJS := $(patsubst %.cpp,%.o,$(wildcard *.cpp rchol/*.cpp rchol_lap/*.cpp util/*.cpp))
+OBJS := $(filter-out ex_laplace.o ex_laplace_parallel.o,$(OBJS))
 
-CFLAG = -Wall -O3
+CFLAG = -Wall -O3 -Irchol/ -Irchol_lap/ -Iutil/
 LDFLAG = -lmkl_intel_ilp64 -mkl
 
-all: driver
 
-objects := $(patsubst %.cpp,%.o,$(wildcard *.cpp))
+METIS_INC = $(TACC_METIS_INC)
+METIS_LIB = $(TACC_METIS_LIB)
+
+# METIS is required for parallel
+ifneq ($(and $(METIS_INC),$(METIS_LIB)),)
+CFLAG += -I$(METIS_INC)
+LDFLAG += -L$(METIS_LIB) -lmetis
+else
+POBJ = rchol/find_separator.o rchol/rchol_parallel.o
+OBJS := $(filter-out $(POBJ),$(OBJS))
+EXE := $(filter-out driver_parallel,$(EXE))
+endif
+
+all: $(EXE)
 
 %.o: %.cpp %.hpp
-	icc $(CFLAG) -c $< -o $@
+	icc -c $< -o $@ $(CFLAG)
 
 %.o: %.cpp
-	icc $(CFLAG) -c $< -o $@
+	icc -c $< -o $@ $(CFLAG)
 
-driver: $(objects)
+driver: ex_laplace.o $(OBJS)
+	icpc $^ -o $@ $(CFLAG) $(LDFLAG)
+	
+driver_parallel: ex_laplace_parallel.o $(OBJS)
 	icpc $^ -o $@ $(CFLAG) $(LDFLAG)
 	
 	
-	#icpc test_laplace_matrix.cpp mklsolve.cpp spcol.c -o driver -I/home1/apps/matlab/2019b/extern/include -I/home1/apps/intel19/eigen/3.3.7/include -L/home1/apps/matlab/2019b/bin/glnxa64 -lmx -lmat -lmex -O3 -m64 -msse3 -march=native -fopenmp -L/opt/intel/parallel_studio_xe_2020.1.102/compilers_and_libraries_2020/linux/tbb/lib/intel64/gcc4.8/ -I/opt/intel/parallel_studio_xe_2020.1.102/compilers_and_libraries_2020/linux/tbb/lib/intel64/gcc4.8/ -Wl,-rpath,/opt/intel/parallel_studio_xe_2020.1.102/compilers_and_libraries_2020/linux/tbb/lib/intel64/gcc4.8/ -ltbbmalloc_proxy -lmkl_core -lmkl_intel_ilp64 -lmkl_intel_thread -liomp5 -lpthread -lm -ldl
-
-run: driver
-	./driver
-
 clean:
-	rm -f driver *.o
+	rm -f driver* *.o rchol/*.o rchol_lap/*.o util/*.o
 

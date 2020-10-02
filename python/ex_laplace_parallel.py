@@ -1,6 +1,6 @@
 import numpy as np 
 from numpy.linalg import norm
-from rchol import *
+from rchol_parallel import *
 from util import *
 
 
@@ -12,11 +12,11 @@ A = laplace_3d(n)
 N = A.shape[0]
 b = np.random.rand(N)
 
-# compute preconditioner after reordering (single thread)
-p = np.random.permutation(N)
-Aperm = A[p[:,None],p]
-G = rchol(Aperm)
+# compute preconditioner after reordering (multi thread)
+p, G = rchol(A, 2)
+Aperm = A[p[:, None], p]
 print('fill-in ratio: {:.2}'.format(2*G.nnz/A.nnz))
+
 
 # solve with PCG
 tol = 1e-6

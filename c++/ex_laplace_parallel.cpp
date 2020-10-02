@@ -3,14 +3,14 @@
 #include <string>
 #include <cstring>
 #include "sparse.hpp" // define CSR sparse matrix type
-#include "rchol.hpp"
+#include "rchol_parallel.hpp"
 #include "util.hpp"
 #include "pcg.hpp"
 
 
 int main(int argc, char *argv[]) {
   int n = 3; // DoF in every dimension
-  int threads = 1;
+  int threads = 2;
   for (int i=0; i<argc; i++) {
     if (!strcmp(argv[i], "-n"))
       n = atoi(argv[i+1]);
@@ -28,20 +28,25 @@ int main(int argc, char *argv[]) {
   std::vector<double> b(N); 
   rand(b);
 
-  // compute preconditioner (single thread) and solve 
+  // compute preconditioner (multithread) and solve
   SparseCSR G;
-  rchol(A, G);
+  std::vector<size_t> P;
+  rchol(A, G, P, threads);
   std::cout<<"Fill-in ratio: "<<2.*G.nnz()/A.nnz()<<std::endl;
 
-  // solve with PCG
+  // solve the reordered problem with PCG
+  SparseCSR Aperm; reorder(A, P, Aperm);
+  std::vector<double> bperm; reorder(b, P, bperm);
+    
   double tol = 1e-6;
   int maxit = 200;
   double relres;
   int itr;
   std::vector<double> x;
-  pcg(A, b, tol, maxit, G, x, relres, itr);
+  pcg(Aperm, bperm, tol, maxit, G, x, relres, itr);
   std::cout<<"# CG iterations: "<<itr<<std::endl;
   std::cout<<"Relative residual: "<<relres<<std::endl;
+
 
   return 0;
 }

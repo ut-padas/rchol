@@ -1,4 +1,5 @@
 #include "sparse.hpp"
+#include <cassert>
 #include <iostream>
 
 SparseCSR::SparseCSR() {
@@ -11,6 +12,13 @@ SparseCSR::SparseCSR() {
 
 SparseCSR::SparseCSR(const std::vector<size_t> &rowPtrA, const std::vector<size_t> &colIdxA,
     const std::vector<double>& valA, bool mem) {
+  this->init(rowPtrA, colIdxA, valA, mem);
+}
+
+void SparseCSR::init(const std::vector<size_t> &rowPtrA, const std::vector<size_t> &colIdxA,
+    const std::vector<double>& valA, bool mem) {
+  assert(this->N == 0 && "empty matrix");
+
   this->N = rowPtrA.size()-1;
   this->rowPtr = new size_t[N+1];
 
@@ -22,6 +30,20 @@ SparseCSR::SparseCSR(const std::vector<size_t> &rowPtrA, const std::vector<size_
   std::copy(valA.begin(), valA.end(), val);
 
   this->ownMemory = mem;
+}
+
+SparseCSR::SparseCSR(const SparseCSR &A) {
+  this->N = A.size();
+  this->rowPtr = new size_t[N+1];
+
+  size_t nnz = A.nnz();
+  this->colIdx = new size_t[nnz];
+  this->val = new double[nnz];
+  std::copy(A.rowPtr, A.rowPtr+N+1, this->rowPtr);
+  std::copy(A.colIdx, A.colIdx+nnz, this->colIdx);
+  std::copy(A.val, A.val+nnz, this->val);
+
+  this->ownMemory = true;
 }
 
 size_t SparseCSR::size() const {

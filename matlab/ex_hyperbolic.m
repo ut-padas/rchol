@@ -1,3 +1,5 @@
+addpath('rchol/')
+
 % 3D SDD matrix from hyperbolic equation
 n = 16;
 A = hyperbolic_3d(n);

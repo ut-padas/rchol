@@ -18,9 +18,6 @@ cdef extern from "rchol_lap.cpp":
         double *ret_diag
         stdint.uint64_t nsize
 
-cdef extern from "metis_separator.cpp":
-    stdint.uint64_t * metis_separator(stdint.uint64_t length, stdint.uint64_t *rpt1, stdint.uint64_t *cpt1)
-
 
 cpdef rchol_lap_cpp(M, matrix_row, thread, result_idx):
 
@@ -55,7 +52,11 @@ cdef extern from "spcol.c":
     pass
 
 
+'''
 # calculates the separator
+cdef extern from "metis_separator.cpp":
+    stdint.uint64_t * metis_separator(stdint.uint64_t length, stdint.uint64_t *rpt1, stdint.uint64_t *cpt1)
+
 
 cpdef find_separator(logic, depth, target):
     cdef stdint.uint64_t *sep_ptr
@@ -96,7 +97,7 @@ cpdef find_separator(logic, depth, target):
         val = np.append(v1, np.append(v2, s.shape[0]))
         p = np.append(l[p1], np.append(r[p2], s))
         return p, val, separator
-
+'''
 
 
 

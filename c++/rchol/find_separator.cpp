@@ -1,16 +1,6 @@
-
+#include "find_separator.hpp"
+#include "metis.h"
 #include "util.hpp"
-#include "laplace_3d.hpp"
-#include <iostream>
-
-SparseCSR laplace_3d(int n) {
-  std::vector<size_t> rowPtr, colIdx;
-  std::vector<double> val;
-  laplace_3d(n, rowPtr, colIdx, val);
-  SparseCSR A(rowPtr, colIdx, val, false);
-  return A;
-}
-
 
 Partition_info determine_parition(size_t *sep_idx, size_t N){
   std::vector<size_t> *left = new std::vector<size_t>();
@@ -64,52 +54,6 @@ SparseCSR get_submatrix(std::vector<size_t> &par, size_t *sep_idx, const SparseC
   SparseCSR ret(rowPtr, colIdx, val, true);
   return ret;
 }
-
-
-
-
-
-// permute the matrix
-void permute_matrix(const SparseCSR &A, std::vector<size_t> &rowPtr, std::vector<size_t> &colIdx, 
-  std::vector<double> &val, std::vector<size_t> &permutation){
-  std::vector<size_t> transp;
-  transp.resize(permutation.size());
-  size_t N = permutation.size();
-  for(size_t i = 0; i < N; i++)
-  {
-    transp[permutation[i]] = i;
-  }
-
-  rowPtr.push_back(0);
-  for(size_t i = 0; i < N; i++)
-  {
-    size_t first = A.rowPtr[permutation[i]];
-    size_t last = A.rowPtr[permutation[i] + 1];
-    rowPtr.push_back(rowPtr[rowPtr.size()- 1] + last - first);
-    Rearrange arrange[last - first];
-    // permute elements in each row
-    for(size_t j = first; j < last; j++)
-    {
-      arrange[j - first].row = transp[A.colIdx[j]];
-      arrange[j - first].data = A.val[j];
-      
-    }
-    // sort elements
-    std::sort(arrange, arrange + last - first);
-
-    for(size_t j = first; j < last; j++)
-    {
-      colIdx.push_back(arrange[j - first].row);
-      val.push_back(arrange[j - first].data);
-    }
-
-
-  }
-
-
-  
-}
-
 
 
 size_t * metis_separator(const SparseCSR &A)
@@ -198,8 +142,8 @@ Separator_info find_separator(const SparseCSR &A, int depth, int target){
     val->push_back(par.second_partition->size());
 
     std::vector<size_t> *p = new std::vector<size_t>();
-    std::vector<size_t> l = permute_vector(*(par.zero_partition), *(linfo.p));
-    std::vector<size_t> r = permute_vector(*(par.one_partition), *(rinfo.p));
+    std::vector<size_t> l = reorder(*(par.zero_partition), *(linfo.p));
+    std::vector<size_t> r = reorder(*(par.one_partition), *(rinfo.p));
     p->reserve(l.size() + r.size() + par.second_partition->size());
     p->insert(p->end(), l.begin(), l.end());
     p->insert(p->end(), r.begin(), r.end());
@@ -215,8 +159,6 @@ Separator_info find_separator(const SparseCSR &A, int depth, int target){
     delete par.second_partition;
 
     return Separator_info(p, val, NULL);
-
   }
-
-
 }
+
