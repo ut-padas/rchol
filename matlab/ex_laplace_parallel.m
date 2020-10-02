@@ -1,3 +1,5 @@
+addpath('rchol/')
+
 % 3D constant Poisson equation with dirichlet boundary
 n = 64;
 A = laplace_3d(n);
