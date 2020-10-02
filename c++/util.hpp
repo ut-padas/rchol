@@ -7,37 +7,7 @@
 #include <stdexcept>
 #include "sparse.hpp"
 #include <algorithm>
-#include "metis.h"
 #include <iostream>
-
-
-struct Separator_info {
-
-  std::vector<size_t> *p; 
-  std::vector<size_t> *val;
-  std::vector<size_t> *separator;
-  Separator_info(std::vector<size_t> *input_p, std::vector<size_t> *input_val, std::vector<size_t> *input_separator)
-  {
-      p = input_p;
-      val = input_val;
-      separator = input_separator;
-  }
-  
-};
-
-struct Partition_info {
-
-  std::vector<size_t> *zero_partition; 
-  std::vector<size_t> *one_partition;
-  std::vector<size_t> *second_partition;
-  Partition_info(std::vector<size_t> *left_partition, std::vector<size_t> *right_partition, std::vector<size_t> *separator)
-  {
-      zero_partition = left_partition;
-      one_partition = right_partition;
-      second_partition = separator;
-  }
-  
-};
 
 
 struct Rearrange {
@@ -61,18 +31,10 @@ struct Rearrange {
 
 SparseCSR laplace_3d(int);
 
-Partition_info determine_parition(size_t *sep_idx, size_t N);
-
-SparseCSR get_submatrix(std::vector<size_t> &par, size_t *sep_idx, const SparseCSR &A);
-
 void reorder(const SparseCSR &A, const std::vector<size_t> &permutation, SparseCSR &);
 
 void reorder(const SparseCSR &A, std::vector<size_t> &rowPtr, std::vector<size_t> &colIdx, 
       std::vector<double> &val, const std::vector<size_t> &permutation);
-
-size_t * metis_separator(const SparseCSR &A);
-
-Separator_info find_separator(const SparseCSR &A, int depth, int target);
 
 
 template <typename T>
