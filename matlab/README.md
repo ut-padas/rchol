@@ -1,7 +1,10 @@
 # rchol
 randomized Cholesky factorization
 
-# Syntax and Description
+# Sparse matrix format
+rchol() accepts a matlab sparse matrix, which is internally a compressed sparse column (CSC) format.
+
+# Syntax and description
 ```matlab
 G = rchol(A)
 ```
