@@ -1,5 +1,7 @@
 import numpy as np 
 from numpy.linalg import norm
+import sys
+sys.path.append('rchol/')
 from rchol import *
 from util import *
 
