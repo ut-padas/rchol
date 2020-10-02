@@ -8,11 +8,7 @@ Directory for randomized cholesky with MATLAB, Python and C++ interfaces. Each s
 # Python
 **Cython** is used to wrap C++ codes. 
 
+# C++
+This directory is intended to be used for obtaining high performance.
 
-# input format
-Python: scipy.sparse.csr_matrix
-
-MATLAB: sparse matrix in MATLAB, which is internally a CSC format
-
-C++: CSR format; see c++/sparse.hpp
 
