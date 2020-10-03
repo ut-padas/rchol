@@ -1,8 +1,8 @@
 # intro
-`randchol` is a  C++ library that implements a randomized incomplete Cholesky decomposition and is based on 
-[Daniel Spielman's](http://www.cs.yale.edu/homes/spielman/) Julia implementation of a randomized incomplete factorization for  [graph Laplacians](https://danspielman.github.io/Laplacians.jl/latest/usingSolvers/#Sampling-Solvers-of-Kyng-and-Sachdeva-1). 
+`randchol` is a  C++ library that implements a randomized incomplete Cholesky factorization. `randchol` is provably effective for SDDM matrices (Symmetric and Diagonally Dominant M-matrices), but can be tested on any SPD matrix. It uses OpenMP for shared memory parallelism on x86 architectures. We do not support GPUs. 
+Factorizing a 3D, 512^3 unknowns (a 134M-by-134M sparse matrix) correspondong on   7-point stencil Laplacian takes about 40 seconds on 64 threads. 
 
-`randchol` can be provably effective for SDDM matrices (Symmetric and Diagonally Dominant M-matrices), but can be tested on any SPD matrix. It uses OpenMP for shared memory parallelism on x86 architecture. We do not support for GPU acceleration.  
+The underlying algorithm is based on  [Daniel Spielman's](http://www.cs.yale.edu/homes/spielman/) Julia implementation of a randomized incomplete factorization for  [graph Laplacians](https://danspielman.github.io/Laplacians.jl/latest/usingSolvers/#Sampling-Solvers-of-Kyng-and-Sachdeva-1). 
 
 The corresponding paper that describes the details can be found in TODO add arxiv link. 
 
@@ -11,8 +11,8 @@ The corresponding paper that describes the details can be found in TODO add arxi
 # Directory structure
 
 * **C++**: This is the main directory for the source code. It also includes usage examples. 
-* **MATLAB**: Provides and interface for MATLAB matrices. We provide several examples for various matrices. 
-* **Python**: Similar with MATLAB but for Python
+* **MATLAB**: Provides an interface for MATLAB users; it is similar to MALTAB's `ichol`. We provide several examples for various matrices. In our experiments, `randchol` seems to be 3X faster than the thresholded `ichol` for the same sparsity pattern (as of September 2020). 
+* **Python**: Similarly for Python.
 
 At each directory, please check the README and makefile files.
 
