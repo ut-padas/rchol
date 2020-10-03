@@ -1,6 +1,6 @@
 # intro
 `randchol` is a  C++ library that implements a randomized incomplete Cholesky decomposition and is based on 
-[Daniel Spielman's](http://www.cs.yale.edu/homes/spielman/) Julia implementation of a randomized incomplete factorization for  [Graph Laplacians](https://danspielman.github.io/Laplacians.jl/latest/usingSolvers/#Sampling-Solvers-of-Kyng-and-Sachdeva-1). 
+[Daniel Spielman's](http://www.cs.yale.edu/homes/spielman/) Julia implementation of a randomized incomplete factorization for  [graph Laplacians](https://danspielman.github.io/Laplacians.jl/latest/usingSolvers/#Sampling-Solvers-of-Kyng-and-Sachdeva-1). 
 
 `randchol` can be provably effective for SDDM matrices (Symmetric and Diagonally Dominant M-matrices), but can be tested on any SPD matrix. It uses OpenMP for shared memory parallelism on x86 architecture. We do not support for GPU acceleration.  
 
