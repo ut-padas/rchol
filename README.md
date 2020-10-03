@@ -1,6 +1,6 @@
 # intro
 `randchol` is a  C++ library that implements a randomized incomplete Cholesky decomposition and is based on 
-[Daniel Spielman's][http://www.cs.yale.edu/homes/spielman/] Julia implementation of a randomized [solver][https://danspielman.github.io/Laplacians.jl/~latest/usingSolvers/#Sampling-Solvers-of-Kyng-and-Sachdeva-1]
+[Daniel Spielman's](http://www.cs.yale.edu/homes/spielman/) Julia implementation of a randomized [solver](https://danspielman.github.io/Laplacians.jl/latest/usingSolvers/#Sampling-Solvers-of-Kyng-and-Sachdeva-1)
 
 
 # randchol
