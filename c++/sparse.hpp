@@ -5,6 +5,8 @@
 #include <string>
 
 
+// Compressed sparse row (CSR) format
+// See, e.g., https://en.wikipedia.org/wiki/Sparse_matrix#Compressed_sparse_row_(CSR,_CRS_or_Yale_format)
 class SparseCSR {
 public:
   SparseCSR();

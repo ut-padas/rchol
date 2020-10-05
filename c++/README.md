@@ -32,7 +32,7 @@ For an SDD sparse matrix, we first create an extended SDDM matrix and then call 
 # Compilation instructions
 A makefile is available in the current directory.
 
-The METIS library is required in order to compile c++ codes for the parallel rchol() routine. Please fill **METIS_INC** and **METIS_LIB** variables in the makefile with the METIS header directory and the library directory, respectively. (We suggest compile METIS to a static library.)
+The METIS library is required in order to compile c++ codes for the parallel rchol() routine. Please fill **METIS_INC** and **METIS_LIB** variables in the makefile with the METIS header directory and the library directory, respectively.
 
-
+The Intel TBB memory allocator can be liked to automatically replace malloc and other C/C++ functions for better performance. Please fill **TBB_MALLOC_PROXY** variable in the makefile.
 
