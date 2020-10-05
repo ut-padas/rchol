@@ -2,8 +2,8 @@
 DIR = rchol_lap
 MFILE = rchol_lap.mexa64
 
-METIS_INC = 
-METIS_LIB = 
+METIS_INC = /work/06108/chaochen/frontera/libs/metis_64bit/include
+METIS_LIB = /work/06108/chaochen/frontera/libs/metis_64bit/build/Linux-x86_64/libmetis
 
 # METIS is required for parallel
 ifneq ($(and $(METIS_INC),$(METIS_LIB)),)
