@@ -3,7 +3,7 @@ OBJS := $(patsubst %.cpp,%.o,$(wildcard *.cpp rchol/*.cpp rchol_lap/*.cpp util/*
 OBJS := $(filter-out ex_laplace.o ex_laplace_parallel.o,$(OBJS))
 
 CFLAG = -Wall -O3 -Irchol/ -Irchol_lap/ -Iutil/
-LDFLAG = -lmkl_intel_ilp64 -mkl
+LDFLAG = -L /opt/intel/parallel_studio_xe_2020.1.102/compilers_and_libraries_2020/linux/tbb/lib/intel64/gcc4.8/ -ltbbmalloc_proxy -lmkl_intel_ilp64 -mkl
 
 
 METIS_INC = $(TACC_METIS_INC)
@@ -17,6 +17,13 @@ else
 POBJ = rchol/find_separator.o rchol/rchol_parallel.o
 OBJS := $(filter-out $(POBJ),$(OBJS))
 EXE := $(filter-out driver_parallel,$(EXE))
+endif
+
+# link TBB malloc proxy
+TBB_MALLOC_PROOXY = -L$(TBBROOT)lib/intel64/gcc4.8/ -ltbbmalloc_proxy
+
+ifneq ($(TBB_MALLOC_PROXY),)
+LDFLAG += TBB_MALLOC_PROXY
 endif
 
 all: $(EXE)

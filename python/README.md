@@ -2,7 +2,7 @@
 randomized Cholesky factorization
 
 # Sparse matrix format
-`rchol()` accepts any sparse matrix format and converts it to a scipy.sparse.csr_matrix internally.
+`rchol()` accepts any sparse matrix format and converts it to a scipy.sparse.csr_matrix internally. We provide `util.py` script for generating standard 7-point finite difference discretization of Poisson equation in `./rchol/` directory.
 
 # Syntax and description
 ```python

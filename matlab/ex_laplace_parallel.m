@@ -2,7 +2,7 @@ addpath('rchol/')
 
 % 3D constant Poisson equation with dirichlet boundary
 n = 64;
-A = laplace_3d(n);
+A = laplace_3d(n); % see ./rchol/laplace_3d.m 
 
 % random RHS
 b = rand(size(A, 1), 1);

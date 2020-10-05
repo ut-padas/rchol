@@ -8,7 +8,7 @@ from util import *
 
 # SDDM matrix from 3D constant Poisson equation
 n = 20
-A = laplace_3d(n)
+A = laplace_3d(n) # see ./rchol/util.py
 
 # random RHS
 N = A.shape[0]

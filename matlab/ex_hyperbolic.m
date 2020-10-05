@@ -2,7 +2,7 @@ addpath('rchol/')
 
 % 3D SDD matrix from hyperbolic equation
 n = 16;
-A = hyperbolic_3d(n);
+A = hyperbolic_3d(n); % see ./rchol/hyperbolic_3d.m
 
 % random RHS
 b = rand(size(A, 1), 1);

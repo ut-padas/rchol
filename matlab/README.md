@@ -2,7 +2,7 @@
 randomized Cholesky factorization
 
 # Sparse matrix format
-rchol() accepts a matlab sparse matrix, which is internally a compressed sparse column (CSC) format.
+rchol() accepts a matlab sparse matrix, which is internally a compressed sparse column (CSC) format. We provide `laplace_3d.m` script for generating standard 7-point finite difference discretization of Poisson equation in `./rchol/` directory.
 
 # Syntax and description
 ```matlab
