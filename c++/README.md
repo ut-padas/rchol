@@ -1,8 +1,8 @@
 # rchol
 randomized Cholesky factorization
 
-# CSR format
-Sparse matrices are stored in the compressed sparse row (CSR) format; see `sparse.hpp`.
+# Sparse matrix format
+`rchol()` accepts sarse matrices stored in the compressed sparse row (CSR) format; see `sparse.hpp`.
 
 # Syntax and Description
 ```c++

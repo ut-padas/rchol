@@ -1,7 +1,10 @@
 # rchol
 randomized Cholesky factorization
 
-# Syntax and Description
+# Sparse matrix format
+`rchol()` accepts any sparse matrix format and converts it to a scipy.sparse.csr_matrix internally.
+
+# Syntax and description
 ```python
 G = rchol(A)
 ```
