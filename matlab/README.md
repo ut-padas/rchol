@@ -47,11 +47,11 @@ G = rchol(A, nthreads, perm, part)
 - **part**: partition used in parallel routine
 - **G**: lower triangular matrix
 
-This routine uses an existing permutation/partition.
+This routine uses an existing permutation/partition. See `ex_reuse_partition.m` for an example.
 
 
 # SDD matrix
-For an SDD sparse matrix, we first create an extended SDDM matrix and then call `rchol`. See `ex_hyperbolic.m` for an example.
+For an SDD sparse matrix, we first create an extended SDDM matrix and then call `rchol`. See `ex_sdd.m` for an example.
 
 # Compilation instructions
 A makefile is available in the current directory, which employs *MEX* to compile our c++ files. Note that the gcc version currently supported with MEX is '6.3.x' as of September 2020.

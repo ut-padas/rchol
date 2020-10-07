@@ -2,7 +2,7 @@ import sys
 sys.path.append('rchol/')
 import numpy as np 
 from numpy.linalg import norm
-from rchol_parallel import *
+from rchol import *
 from util import *
 
 
@@ -16,7 +16,7 @@ b = np.random.rand(N)
 
 # compute preconditioner after reordering (multi thread)
 nthreads = 2
-G, p = rchol(A, nthreads)
+G, p = rchol(A, nthreads)[0:2]
 Aperm = A[p[:, None], p]
 print('fill-in ratio: {:.2}'.format(2*G.nnz/A.nnz))
 

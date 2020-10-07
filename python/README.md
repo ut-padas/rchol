@@ -6,7 +6,7 @@ randomized Cholesky factorization
 
 # Syntax and description
 ```python
-G = rchol(A)
+G = rchol(A)[0]
 ```
 
 - **A**: SDDM sparse matrix 
@@ -15,7 +15,7 @@ G = rchol(A)
 This is a sequntial routine computing an approximate Cholesky factorization `G*G'~A`. Reordering of the input sparse matrix is recommended before calling this routine. See `ex_laplace.m` for an example.
 
 ```python
-G, p = rchol(A, nthreads)
+G, p = rchol(A, nthreads)[0:2]
 ```
 
 - **A**: SDDM sparse matrix 
@@ -24,6 +24,30 @@ G, p = rchol(A, nthreads)
 - **p**: permutation vector
 
 This is a *parallel* routine computing an approximate Cholesky factorization `G*G'~A(p,p)`. The input sparse matrix is reordered inside the routine, and the permutation vector is returned as an output. See `ex_laplace_parallel.m` for an example. The METIS package is required for compilation; see [Compilation instructions](#compilation-instructions) for details.
+
+```python
+G, perm, part = rchol(A, nthreads)
+```
+
+- **A**: SDDM sparse matrix 
+- **nthreads**: number of threads
+- **G**: lower triangular matrix
+- **perm**: permutation vector
+- **part**: partition of the permuted matrix
+
+The returned permutation and partition information can be stored for reuse. See below.
+
+```python
+G = rchol(A, nthreads, perm, part)[0]
+```
+
+- **A**: SDDM sparse matrix 
+- **nthreads**: number of threads
+- **G**: lower triangular matrix
+- **perm**: permutation vector
+- **part**: partition of the permuted matrix
+
+This routine uses an existing permutation/partition. See `ex_reuse_partition.py` for an example.
 
 
 <!--

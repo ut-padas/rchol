@@ -17,7 +17,7 @@ b = np.random.rand(N)
 # compute preconditioner after reordering (single thread)
 p = np.random.permutation(N)
 Aperm = A[p[:,None],p]
-G = rchol(Aperm)
+G = rchol(Aperm)[0]
 print('fill-in ratio: {:.2}'.format(2*G.nnz/A.nnz))
 
 # solve with PCG
