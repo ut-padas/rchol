@@ -12,7 +12,7 @@ G = rchol(A)
 - **A**: SDDM sparse matrix 
 - **G**: lower triangular matrix
 
-This is a sequntial routine computing an approximate Cholesky factorization `G*G'~A`. Reordering of the input sparse matrix is recommended before calling this routine. See `ex_laplace.m` for an example.
+This is a sequntial routine computing an approximate Cholesky factorization `G*G'~A`. Reordering of the input sparse matrix is recommended before calling this routine. See `ex_sdd.m` for an example.
 
 ```matlab
 [G, p] = rchol(A, nthreads)
