@@ -32,7 +32,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         cpt[i] = cpt1[i];
  
     }
-    std::cout << "\n";
     for(idx_t i = 0; i < nz; i++)
     {
         rpt[i] = rpt1[i];
