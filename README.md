@@ -1,6 +1,6 @@
 # intro
 `randchol` is a  C++ library that implements a randomized incomplete Cholesky factorization. `randchol` is provably effective for SDDM matrices (Symmetric and Diagonally Dominant M-matrices), but can be tested on any SPD matrix. It uses OpenMP for shared memory parallelism on x86 architectures. We do not support GPUs. 
-Factorizing a 3D, one billion (1024^3) unknowns (a 1B-by-1B sparse matrix) correspondong on 7-point stencil Laplacian takes about 180 seconds on 64 threads. 
+Factorizing the discrete Laplacian matrix on a 1024x1024x1024 grid with standard 7-point stencil, which has **one billion** unknowns, takes about 3 minutes/180 seconds using 64 threads. 
 
 The underlying algorithm is based on  [Daniel Spielman's](http://www.cs.yale.edu/homes/spielman/) Julia implementation of a randomized incomplete factorization for  [graph Laplacians](https://github.com/danspielman/Laplacians.jl/blob/master/docs/src/usingSolvers.md#sampling-solvers-of-kyng-and-sachdeva). 
 
