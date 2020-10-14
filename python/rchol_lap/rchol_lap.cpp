@@ -216,7 +216,7 @@ std::vector<Edge_info> & recursive_calculation(std::vector<size_t> &result_idx, 
         
         time_s = std::chrono::steady_clock::now();
         
-        for (size_t i = result_idx.at(start); i < result_idx.at(start + total_size) && i != lap.size() - 1; i++)
+        for (size_t i = result_idx.at(start); i < result_idx.at(start + total_size); i++)
         {
             size_t current = i;
             gsl_spmatrix *b = lap.at(current);
@@ -329,7 +329,7 @@ std::vector<Edge_info> & recursive_calculation(std::vector<size_t> &result_idx, 
 
 		
         time_s = std::chrono::steady_clock::now();
-        for (size_t i = result_idx.at(start + total_size - 1); i < result_idx.at(start + total_size) && i != lap.size() - 1; i++)
+        for (size_t i = result_idx.at(start + total_size - 1); i < result_idx.at(start + total_size); i++)
         {
             if(i == lap.size() - 1)
             {
@@ -367,7 +367,7 @@ void cholesky_factorization(std::vector<gsl_spmatrix *> &lap, csc_form *input,  
 {
     // calculate nonzeros and create lower triangular matrix
     size_t m = lap.size() - 1;
-    double *diagpt = new double[m]();
+    double *diagpt = new double[m + 1]();
     
     auto start = std::chrono::steady_clock::now();
     auto end = std::chrono::steady_clock::now();
