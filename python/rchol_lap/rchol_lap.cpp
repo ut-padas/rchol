@@ -162,7 +162,7 @@ void clear_memory(std::vector<gsl_spmatrix *> &lap)
     {
         gsl_spmatrix_free(lap.at(i));
     }
-    
+
     delete &lap;
     
 
@@ -216,9 +216,8 @@ std::vector<Edge_info> & recursive_calculation(std::vector<size_t> &result_idx, 
         
         time_s = std::chrono::steady_clock::now();
         
-        for (size_t i = result_idx.at(start); i < result_idx.at(start + total_size); i++)
+        for (size_t i = result_idx.at(start); i < result_idx.at(start + total_size) && i != lap.size() - 1; i++)
         {
-            
             size_t current = i;
             gsl_spmatrix *b = lap.at(current);
             if(b->nz - b->split > 0)
@@ -330,9 +329,13 @@ std::vector<Edge_info> & recursive_calculation(std::vector<size_t> &result_idx, 
 
 		
         time_s = std::chrono::steady_clock::now();
-        for (size_t i = result_idx.at(start + total_size - 1); i < result_idx.at(start + total_size); i++)
+        for (size_t i = result_idx.at(start + total_size - 1); i < result_idx.at(start + total_size) && i != lap.size() - 1; i++)
         {
-            
+            if(i == lap.size() - 1)
+            {
+                lap.at(i)->data[0] = 1.0;
+                continue;
+            }
             size_t current = i;
             gsl_spmatrix *b = lap.at(current);
             if(b->nz - b->split > 0)
@@ -429,7 +432,7 @@ void cholesky_factorization(std::vector<gsl_spmatrix *> &lap, csc_form *input,  
     input->ret_col = cpt;
     input->ret_val = datapt;
     input->ret_diag = diagpt;
-
+    
 }
 
 
@@ -773,7 +776,6 @@ void process_array(csc_form *input, std::vector<size_t> &result_idx, size_t dept
     CPU_ZERO(&cpuset);
     CPU_SET(core_begin, &cpuset);
     sched_setaffinity(0, sizeof(cpuset), &cpuset);
-    
     // bottom level
     if(target == depth)
     {
@@ -791,7 +793,7 @@ void process_array(csc_form *input, std::vector<size_t> &result_idx, size_t dept
             for (j = start; j < last; j++)
             {
                 
-                if(rpt[j] == lap.size() - 1 && datapt[j] < 0 && i != lap.size() - 1)
+                if(i != lap.size() - 1 && rpt[j] == lap.size() - 1 && datapt[j] < 0)
                 {
                     //std::cout << "set to 0 at i: " << i << "\n";
                     count++;

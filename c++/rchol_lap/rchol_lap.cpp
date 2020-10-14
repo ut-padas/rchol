@@ -215,7 +215,7 @@ std::vector<Edge_info> & recursive_calculation(std::vector<size_t> &result_idx, 
         
         time_s = std::chrono::steady_clock::now();
         
-        for (size_t i = result_idx.at(start); i < result_idx.at(start + total_size); i++)
+        for (size_t i = result_idx.at(start); i < result_idx.at(start + total_size) && i != lap.size() - 1; i++)
         {
             
             size_t current = i;
@@ -329,7 +329,7 @@ std::vector<Edge_info> & recursive_calculation(std::vector<size_t> &result_idx, 
 
 		
         time_s = std::chrono::steady_clock::now();
-        for (size_t i = result_idx.at(start + total_size - 1); i < result_idx.at(start + total_size); i++)
+        for (size_t i = result_idx.at(start + total_size - 1); i < result_idx.at(start + total_size) && i != lap.size() - 1; i++)
         {
             
             size_t current = i;
@@ -442,7 +442,7 @@ void cholesky_factorization(std::vector<gsl_spmatrix *> &lap, std::vector<size_t
     output->rowIdx = rpt;
     output->val = datapt;
     output->N = m - 1;
-    free(diagpt);
+    delete[] diagpt;
 
     //mkl_sparse_d_create_csr(L, SPARSE_INDEX_BASE_ZERO, m - 1, m - 1, pointerB, pointerE, rpt, datapt);
 
