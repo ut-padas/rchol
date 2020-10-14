@@ -5,7 +5,6 @@ from find_separator import *
 from util import *
 import math
 
-
 def rchol(A, nt=1, perm=np.array([]), part=np.array([])):
 
   # check parameter
@@ -39,8 +38,10 @@ def rchol(A, nt=1, perm=np.array([]), part=np.array([])):
   edges = -1*triu(Lap, format='csr')
 
   L, D = rchol_lap(edges, edges.shape[0] - 1, nt, part)
+  L = L.transpose()
   Gt = L * diags(np.sqrt(D))
 
-  return Gt.transpose().tocsr(), perm, part
+
+  return Gt.tocsr(), perm, part
 
 
