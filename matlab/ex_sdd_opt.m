@@ -16,12 +16,13 @@ I1 = I1(:);
 I2 = setdiff(1:N,I1);
 I2 = I2(:);
 
-% extract the connected component
-Ae = sdd_to_sddm(A);
-be = [b; -b];
-I = [I1; I2+N];
-Ag = Ae(I, I);
-bg = be(I);
+% construct the reduced problem by flipping signs of to positive entries
+Ag = A;
+Ag(I1,I2) = -A(I1,I2);
+Ag(I2,I1) = -A(I2,I1);
+
+bg = b;
+bg(I2) = -b(I2);
 
 % solve with PCG
 tol = 1e-6;
@@ -34,11 +35,9 @@ fprintf('fill ratio: %.2f\n', 2*nnz(G)/nnz(Ag))
 fprintf('# iterations: %d\n', itr)
 
 % retrieve original solution
-S = length(I1);
-x = zeros(N, 1);
 xg(p) = xg;
-x(I1) = xg(1:S);
-x(I2) = -xg(S+1:end);
+x = xg;
+x(I2) = -xg(I2);
 
 % check residual
 fprintf('relative residual: %.2e\n', norm(b - A*x)/norm(b))
