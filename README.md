@@ -1,4 +1,4 @@
-# intro
+# Overview
 `rchol` is a  C++ library that implements a randomized incomplete Cholesky factorization. `rchol` is provably effective for SDDM matrices (Symmetric and Diagonally Dominant M-matrices), but can be tested on any SPD matrix. It uses OpenMP for shared memory parallelism on x86 architectures. We do not support GPUs. 
 Factorizing the discrete Laplacian matrix on a 1024x1024x1024 grid with standard 7-point stencil, which has **one billion** unknowns, takes about 3 minutes/180 seconds using 64 threads. 
 
@@ -15,6 +15,12 @@ The corresponding paper that describes the details can be found in TODO add arxi
 * **Python**: Similarly for Python.
 
 At each directory, please check the README and makefile files.
+
+# Authors
+Tianyu Liang  
+Chao Chen  
+George Biros (advisor)  
+
 
 
 
