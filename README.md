@@ -4,7 +4,7 @@ Factorizing the discrete Laplacian matrix on a 1024x1024x1024 grid with standard
 
 The underlying algorithm is based on  [Daniel Spielman's](http://www.cs.yale.edu/homes/spielman/) Julia implementation of a randomized incomplete factorization for  [graph Laplacians](https://github.com/danspielman/Laplacians.jl/blob/master/docs/src/usingSolvers.md#sampling-solvers-of-kyng-and-sachdeva). 
 
-The corresponding paper that describes the details can be found in TODO add arxiv link. 
+The corresponding paper that describes the details can be found [here](https://arxiv.org/abs/2011.07769). 
 
 *Dependencies:*  The only dependency is the [METIS library](http://glaros.dtc.umn.edu/gkhome/metis/metis/overview).  METIS is required for shared-memory parallelism. 
 
