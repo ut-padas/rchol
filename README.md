@@ -21,6 +21,12 @@ Tianyu Liang
 Chao Chen  
 George Biros (advisor)  
 
+# Funding
+This project is partially funded by NSF award CCF-1817048; and  by the U.S. Department of Energy, Office of Science, Office of Advanced Scientific Computing Research, Applied Mathematics program under Award Number DE-SC0019393, by the U.S. Department of Energy, National Nuclear Security Administration Award Number DE-NA000396 (PSAAP III).  Computing time on the Texas Advanced Computing Centers Stampede system was provided by an allocation from TACC and the NSF. 
+
+
+
+
 
 
 
