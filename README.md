@@ -18,7 +18,7 @@ At each directory, please check the README and makefile files.
 
 # Authors
 Tianyu Liang  
-Chao Chen  
+Chao Chen (chenchao.nk@gmail.com)  
 George Biros (advisor)  
 
 # Funding
