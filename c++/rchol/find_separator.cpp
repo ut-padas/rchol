@@ -2,6 +2,10 @@
 #include "metis.h"
 #include "util.hpp"
 
+extern "C" {
+#include "amd.h"
+}
+
 Partition_info determine_parition(size_t *sep_idx, size_t N){
   std::vector<size_t> *left = new std::vector<size_t>();
   std::vector<size_t> *right = new std::vector<size_t>();
@@ -113,9 +117,14 @@ Separator_info find_separator(const SparseCSR &A, int depth, int target){
     
     std::vector<size_t> *val = new std::vector<size_t>();
     val->push_back(A.N);
-    std::vector<size_t> *p = new std::vector<size_t>();
-    for(size_t i = 0; i < A.N; i++)
-      p->push_back(i);
+    
+    // AMD ordering
+    std::vector<size_t> P(A.N);
+    amd_l_order(A.N, (long *)A.rowPtr, (long *)A.colIdx, (long *)P.data(), (double*) NULL, (double*) NULL);
+    
+    std::vector<size_t> *p = new std::vector<size_t>(P);
+    //for(size_t i = 0; i < A.N; i++)
+      //p->push_back(i);
     return Separator_info(p, val, NULL);
 
   }

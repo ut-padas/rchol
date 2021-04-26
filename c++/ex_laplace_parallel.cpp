@@ -6,11 +6,12 @@
 #include "rchol_parallel.hpp"
 #include "util.hpp"
 #include "pcg.hpp"
+#include "timer.hpp"
 
 
 int main(int argc, char *argv[]) {
-  int n = 3; // DoF in every dimension
-  int threads = 2;
+  int n = 128; // DoF in every dimension
+  int threads = 1;
   for (int i=0; i<argc; i++) {
     if (!strcmp(argv[i], "-n"))
       n = atoi(argv[i+1]);
@@ -29,21 +30,29 @@ int main(int argc, char *argv[]) {
   rand(b);
 
   // compute preconditioner (multithread) and solve
+  Timer t; t.start();
   SparseCSR G;
   std::vector<size_t> P;
   rchol(A, G, P, threads);
+  t.stop();
+  std::cout<<"Setup time: "<<t.elapsed()<<std::endl;
   std::cout<<"Fill-in ratio: "<<2.*G.nnz()/A.nnz()<<std::endl;
 
   // solve the reordered problem with PCG
   SparseCSR Aperm; reorder(A, P, Aperm);
   std::vector<double> bperm; reorder(b, P, bperm);
     
-  double tol = 1e-6;
+  double tol = 1e-10;
   int maxit = 200;
   double relres;
   int itr;
   std::vector<double> x;
+  
+  t.start();
   pcg(Aperm, bperm, tol, maxit, G, x, relres, itr);
+  t.stop();
+
+  std::cout<<"Solve time: "<<t.elapsed()<<std::endl;
   std::cout<<"# CG iterations: "<<itr<<std::endl;
   std::cout<<"Relative residual: "<<relres<<std::endl;
 

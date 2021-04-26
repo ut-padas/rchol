@@ -11,8 +11,8 @@ METIS_LIB = $(TACC_METIS_LIB)
 
 # METIS is required for parallel
 ifneq ($(and $(METIS_INC),$(METIS_LIB)),)
-CFLAG += -I$(METIS_INC)
-LDFLAG += -L$(METIS_LIB) -lmetis
+CFLAG += -I$(METIS_INC) -I$(AMD_INC)
+LDFLAG += -L$(METIS_LIB) -lmetis -L$(AMD_LIB) -lamd
 else
 POBJ = rchol/find_separator.o rchol/rchol_parallel.o
 OBJS := $(filter-out $(POBJ),$(OBJS))
@@ -42,5 +42,5 @@ driver_parallel: ex_laplace_parallel.o $(OBJS)
 	
 	
 clean:
-	rm -f driver* *.o rchol/*.o rchol_lap/*.o util/*.o
+	rm -f $(EXE) *.o rchol/*.o rchol_lap/*.o util/*.o
 
