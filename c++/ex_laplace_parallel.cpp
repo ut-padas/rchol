@@ -22,7 +22,8 @@ int main(int argc, char *argv[]) {
  
   // SDDM matrix from 3D constant Poisson equation
   SparseCSR A;
-  A = laplace_3d(n); // n x n x n grid
+  //A = laplace_3d(n); // n x n x n grid
+  A.read_mkt_file("/home1/06108/chaochen/matrices/parabolic_fem.mtx");
 
   // random RHS
   int N = A.size();

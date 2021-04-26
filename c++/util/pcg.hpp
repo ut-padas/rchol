@@ -1,7 +1,7 @@
 #ifndef pcg_hpp
 #define pcg_hpp
 
-#include "../sparse.hpp"
+#include "sparse.hpp"
 
 #define MKL_INT size_t
 #include "mkl_spblas.h"

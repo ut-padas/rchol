@@ -7,7 +7,7 @@
 #include <stdexcept>
 #include <algorithm>
 #include <iostream>
-#include "../sparse.hpp"
+#include "sparse.hpp"
 
 
 struct Rearrange {

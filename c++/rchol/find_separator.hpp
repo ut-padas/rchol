@@ -1,7 +1,7 @@
 #ifndef find_separator_hpp
 #define find_separator_hpp
 
-#include "../sparse.hpp"
+#include "sparse.hpp"
 
 
 struct Separator_info {

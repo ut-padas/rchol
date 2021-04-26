@@ -1,8 +1,9 @@
 EXE = driver driver_parallel
-OBJS := $(patsubst %.cpp,%.o,$(wildcard *.cpp rchol/*.cpp rchol_lap/*.cpp util/*.cpp))
-OBJS := $(filter-out ex_laplace.o ex_laplace_parallel.o,$(OBJS))
+OBJS := $(patsubst %.cpp,%.o,$(wildcard *.cpp rchol/*.cpp rchol_lap/*.cpp util/*.cpp csr/*.cpp))
+OBJS := $(filter-out ex_laplace.o ex_laplace_parallel.o csr/driver.o,$(OBJS))
 
-CFLAG = -Wall -O3 -Irchol/ -Irchol_lap/ -Iutil/
+CFLAG = -Wall -g -Irchol/ -Irchol_lap/ -Iutil/ -Icsr/
+#CFLAG = -Wall -O3 -Irchol/ -Irchol_lap/ -Iutil/ -Icsr/
 LDFLAG = -lmkl_intel_ilp64 -mkl
 
 
@@ -42,5 +43,5 @@ driver_parallel: ex_laplace_parallel.o $(OBJS)
 	
 	
 clean:
-	rm -f $(EXE) *.o rchol/*.o rchol_lap/*.o util/*.o
+	rm -f $(EXE) *.o rchol/*.o rchol_lap/*.o util/*.o csr/*.o
 
