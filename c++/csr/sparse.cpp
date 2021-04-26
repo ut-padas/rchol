@@ -52,20 +52,20 @@ void SparseCSR::read_mkt_file(std::string filename) {
   while (comment[0]=='%') {
     std::getline(matFile, comment);
   }
-  int nrow, ncol, nnz;
+  int nrow, ncol, nline;
   std::stringstream ss(comment);
-  ss >> nrow >> ncol >> nnz;
+  ss >> nrow >> ncol >> nline;
   assert(nrow==ncol && "Non-square matrix");
-  assert(nrow>0 && nnz>0);
+  assert(nrow>0 && nline>0);
 
   // read a lower triangular in CSC
   std::vector<int> colPtrL(nrow+1,0), rowIdxL; 
   std::vector<double> valL; 
   colPtrL.reserve(N+1);
-  rowIdxL.reserve(nnz);
-  valL.reserve(nnz);
+  rowIdxL.reserve(nline);
+  valL.reserve(nline);
 
-  int i, j, line, nline = (nnz+nrow)/2;
+  int i, j, line;
   double x;
   for (line=0; line<nline; line++) {
     matFile >> i >> j >> x;
@@ -79,6 +79,7 @@ void SparseCSR::read_mkt_file(std::string filename) {
     colPtrL[i+1] += colPtrL[i];
   assert(rowIdxL.size() == colPtrL.back());
 
+  int nnz = 2*nline-nrow;
   this->N = nrow;
   this->ownMemory = true;
   this->rowPtr = new size_t[N+1]();
@@ -86,11 +87,10 @@ void SparseCSR::read_mkt_file(std::string filename) {
   this->val = new double[nnz];
 
   // get nnz per row
-  for (int c=0; c<N; c++) {
-    for (int i=colPtrL[c]; i<colPtrL[c+1]; i++) {
-      rowPtr[ rowIdxL[i] ]++;
-      if (c+1 != rowIdxL[i] )
-        rowPtr[c+1]++;
+  for (int c=1; c<N+1; c++) {
+    for (int i=colPtrL[c-1]; i<colPtrL[c]; i++) {
+      int r = rowIdxL[i]; rowPtr[ r ]++;
+      if (r > c)          rowPtr[ c ]++;
     }
   }
   for (int i=0; i<N; i++)

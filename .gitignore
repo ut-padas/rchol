@@ -6,3 +6,6 @@
 bak/*
 *.bak
 
+driver
+driver_parallel
+
