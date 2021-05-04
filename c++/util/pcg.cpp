@@ -46,32 +46,7 @@ pcg::pcg(const SparseCSR &A, const std::vector<double> &b,
 
   
 void pcg::create_sparse(size_t N, size_t *cpt, size_t *rpt, double *datapt, SpMat &mat) {
-
-  /*
-    size_t *pointerB = new size_t[N + 1]();
-    size_t *pointerE = new size_t[N + 1]();
-    size_t *update_intend_rpt = new size_t[cpt[N]]();
-    double *update_intend_datapt = new double[cpt[N]]();
-    for(size_t i = 0; i < N; i++)
-    {
-        size_t start = cpt[i];
-        size_t last = cpt[i + 1];
-        pointerB[i] = start;
-        for (size_t j = start; j < last; j++)
-        {
-            update_intend_datapt[j] = datapt[j];
-            update_intend_rpt[j] = rpt[j];
-        }
-        pointerE[i] = last;    
-
-    }
-    
-    mkl_sparse_d_create_csr(&mat, SPARSE_INDEX_BASE_ZERO, N, N, pointerB, pointerE, update_intend_rpt, update_intend_datapt);
-    */
-
     mkl_sparse_d_create_csr(&mat, SPARSE_INDEX_BASE_ZERO, N, N, cpt, cpt+1, rpt, datapt);
-
-    //delete[] pointerB, pointerE, update_intend_rpt, update_intend_datapt;
 }
 
 
@@ -152,8 +127,8 @@ void pcg::iteration(const SpMat *A, const double *b, SpMat *lap,
 void pcg::matrix_vector_product(const SpMat *A, const double *b, double *q)
 {
     matrix_descr des;
-    des.type = SPARSE_MATRIX_TYPE_GENERAL;
-    //des.type = SPARSE_MATRIX_TYPE_SYMMETRIC;
+    //des.type = SPARSE_MATRIX_TYPE_GENERAL;
+    des.type = SPARSE_MATRIX_TYPE_SYMMETRIC;
     //des.mode = SPARSE_FILL_MODE_UPPER;
     //des.diag = SPARSE_DIAG_NON_UNIT;
     mkl_sparse_d_mv(SPARSE_OPERATION_NON_TRANSPOSE, 1, *A, des, b, 0, q);
