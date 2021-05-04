@@ -10,6 +10,8 @@ typedef sparse_matrix_t SpMat;
 #include <iostream>
 #include <chrono>
 #include <cassert>
+#include <cmath>
+#include <future>
 
 
 pcg::pcg(const SparseCSR &A, const std::vector<double> &b, 
@@ -17,7 +19,7 @@ pcg::pcg(const SparseCSR &A, const std::vector<double> &b,
     const SparseCSR &G, std::vector<double> &x, double &relres, int &itr) {
 
   this->G = G;
-  this->seperators = S;
+  this->S = S; this->S.back()--; // remove artifitial vertex
   this->nThreads = nt;
 
   this->ps = A.N;
@@ -27,6 +29,12 @@ pcg::pcg(const SparseCSR &A, const std::vector<double> &b,
   SpMat Amat, Gmat;
   create_sparse(A.N, A.rowPtr, A.colIdx, A.val, Amat);
   create_sparse(G.N, G.rowPtr, G.colIdx, G.val, Gmat);
+
+  // matrix descr for G
+  MDG.type = SPARSE_MATRIX_TYPE_TRIANGULAR;
+  MDG.mode = SPARSE_FILL_MODE_UPPER;
+  MDG.diag = SPARSE_DIAG_NON_UNIT;
+
   this->iteration(&Amat, b.data(), &Gmat, x, relres, itr);
 
   mkl_sparse_destroy(Amat);
@@ -85,10 +93,11 @@ void pcg::iteration(const SpMat *A, const double *b, SpMat *lap,
     double *p = new double[ps]();
     double *temp = new double[ps]();
     double *q = new double[ps]();
+    double *work = new double[ps](); // working memory for preconditioner solve
     while(cblas_dnrm2(ps, r, 1) > cblas_dnrm2(ps, b, 1) * tolerance && n_iters < this->maxSteps)
     {
         
-        this->precond_solve(lap, r, temp);
+        this->precond_solve(lap, r, temp, work);
 
         if (n_iters == 0)
         {
@@ -144,33 +153,109 @@ void pcg::matrix_vector_product(const SpMat *A, const double *b, double *q)
 }
 
 
-void pcg::precond_solve(SpMat *lap, const double *b, double *ret)
+void pcg::precond_solve(SpMat *lap, const double *r, double *x, double *y)
 {
     // lower solve
-    size_t N = ps;
-    double *x = new double[N]();
-    matrix_descr des;
-    des.type = SPARSE_MATRIX_TYPE_TRIANGULAR;
-    des.mode = SPARSE_FILL_MODE_UPPER;
-    des.diag = SPARSE_DIAG_NON_UNIT;
-
-    mkl_sparse_d_trsv(SPARSE_OPERATION_TRANSPOSE, 1, *lap, des, b, x);
+    mkl_sparse_d_trsv(SPARSE_OPERATION_TRANSPOSE, 1, *lap, MDG, r, y);
 
     // upper triangular solve
-    //mkl_sparse_d_trsv(SPARSE_OPERATION_NON_TRANSPOSE, 1, *lap, des, x, ret);
+    //mkl_sparse_d_trsv(SPARSE_OPERATION_NON_TRANSPOSE, 1, *lap, MDG, y, x);
     
+    /*
     for (int r=G.N-1; r>=0; r--) {
       assert(G.colIdx[ G.rowPtr[r] ] == r);
-      ret[r] = x[r];
+      x[r] = y[r];
       for (int i=G.rowPtr[r]+1; i<G.rowPtr[r+1]; i++) {
         int c = G.colIdx[i];
         double v = G.val[i];
-        ret[r] -= ret[c] * v;
+        x[r] -= x[c] * v;
         assert(c > r);
       }
-      ret[r] /= G.val[ G.rowPtr[r] ];
+      x[r] /= G.val[ G.rowPtr[r] ];
     }
-   
-    delete[] x;
+    */
+
+    this->upper_solve(y, 0, std::log2(nThreads), 0, S.size()-1, 0, nThreads);
+
+    for (int i=0; i<G.N; i++) x[i] = y[i];
 }
+
+void pcg::upper_solve(double *b, int depth, int target, 
+    int start, int total_size, int core_begin, int core_end)
+{
+
+    // pin to a core
+    if(sched_getcpu() != core_begin)
+    {
+        cpu_set_t cpuset;
+        CPU_ZERO(&cpuset);
+        CPU_SET(core_begin, &cpuset);
+        sched_setaffinity(0, sizeof(cpuset), &cpuset);
+    }
+
+    /* base case */
+    if(target == depth)
+    {
+        auto time_s = std::chrono::steady_clock::now();
+        int  R0 = S.at(start);
+        int  R1 = S.at(start + total_size);
+        for (int r = R1-1; r >= R0; r--)
+        {  
+            assert(r == G.colIdx[ G.rowPtr[r] ]);
+            for (int i = G.rowPtr[r]+1; i < G.rowPtr[r+1]; i++) 
+            {
+                int    c = G.colIdx[i];
+                double v = G.val[i];
+                b[r] -= b[c] * v;
+                assert(c > r);
+            }
+            b[r] /= G.val[ G.rowPtr[r] ];
+        }
+        auto time_e = std::chrono::steady_clock::now();
+        auto elapsed = time_e - time_s;
+        //std::cout << "depth: " << depth << " thread " << omp_get_thread_num() << " cpu: " << cpu_num << " time: " << std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count() << "\n";
+    }
+    else
+    {
+        /* separator portion */
+        auto time_s = std::chrono::steady_clock::now();
+        int  R0 = S.at(start + total_size - 1);
+        int  R1 = S.at(start + total_size);
+        for (size_t r = R1-1; r >= R0; r--)
+        {
+            assert(r == G.colIdx[ G.rowPtr[r] ]);
+            for (int i = G.rowPtr[r]+1; i < G.rowPtr[r+1]; i++) 
+            {
+                int    c = G.colIdx[i];
+                double v = G.val[i];
+                b[r] -= b[c] * v;
+                assert(c > r);
+            }
+            b[r] /= G.val[ G.rowPtr[r] ];
+        }
+        auto time_e = std::chrono::steady_clock::now();
+        auto elapsed = time_e - time_s;
+        //int cpu_num = sched_getcpu();
+        //std::cout << "depth(separator): " << depth << " thread " << omp_get_thread_num() << " cpu: " << cpu_num  << " time: " << std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count() << " length: " << result_idx.at(start + total_size) - result_idx.at(start + total_size - 1) << "\n";
+
+        /* recursive call */
+        int core_id = (core_begin + core_end) / 2;
+        /*
+        this->upper_solve(b, depth + 1, target, (total_size - 1) / 2 + start, (total_size - 1) / 2, 
+            core_id, core_end);
+        
+        this->upper_solve(b, depth + 1, target, start, (total_size - 1) / 2, 
+            core_begin, core_id);
+        */
+        
+        std::async(std::launch::async, &pcg::upper_solve, this,
+            b, depth + 1, target, (total_size - 1) / 2 + start, (total_size - 1) / 2, 
+            core_id, core_end);
+        
+        this->upper_solve(b, depth + 1, target, start, (total_size - 1) / 2, 
+            core_begin, core_id);
+    }
+}
+
+
 
