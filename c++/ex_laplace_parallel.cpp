@@ -12,11 +12,14 @@
 int main(int argc, char *argv[]) {
   int n = 64; // DoF in every dimension
   int threads = 1;
+  int nitr = 10;
   for (int i=0; i<argc; i++) {
     if (!strcmp(argv[i], "-n"))
       n = atoi(argv[i+1]);
     if (!strcmp(argv[i], "-t"))
       threads = atoi(argv[i+1]);
+    if (!strcmp(argv[i], "-i"))
+      nitr = atoi(argv[i+1]);
   }
   std::cout<<std::setprecision(3);
  
@@ -50,13 +53,12 @@ int main(int argc, char *argv[]) {
   std::vector<double> bperm; reorder(b, P, bperm);
     
   double tol = 1e-10;
-  int maxit = 200;
   double relres;
   int itr;
   std::vector<double> x;
   
   t.start();
-  pcg(Aperm, bperm, S, threads, tol, maxit, G, x, relres, itr);
+  pcg(Aperm, bperm, S, threads, tol, nitr, G, x, relres, itr);
   t.stop();
 
   std::cout<<"Solve time: "<<t.elapsed()<<std::endl;

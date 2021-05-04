@@ -16,6 +16,8 @@ public:
       const std::vector<int> &S, int nt, double tol, int maxit,
       const SparseCSR &G, std::vector<double> &x, double &relres, int &itr);
 
+  ~pcg();
+
 private:
   void create_sparse(size_t N, size_t *cpt, size_t *rpt, double *datapt, SpMat &mat);
   void iteration(const SpMat*, const double*, SpMat*, std::vector<double>&, double&, int&);
@@ -33,6 +35,10 @@ private:
   int nThreads;
 
   matrix_descr MDG;
+
+  double t_itr = 0;
+  double t_upper_solve = 0;
+  double t_lower_solve = 0;
 };
 
 

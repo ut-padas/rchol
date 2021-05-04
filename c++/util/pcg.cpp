@@ -1,4 +1,5 @@
 #include "pcg.hpp"
+#include "timer.hpp"
 
 #define MKL_INT size_t
 #include "mkl_spblas.h"
@@ -35,7 +36,9 @@ pcg::pcg(const SparseCSR &A, const std::vector<double> &b,
   MDG.mode = SPARSE_FILL_MODE_UPPER;
   MDG.diag = SPARSE_DIAG_NON_UNIT;
 
+  Timer t; t.start();
   this->iteration(&Amat, b.data(), &Gmat, x, relres, itr);
+  t.stop(); t_itr = t.elapsed();
 
   mkl_sparse_destroy(Amat);
   mkl_sparse_destroy(Gmat);
@@ -44,6 +47,7 @@ pcg::pcg(const SparseCSR &A, const std::vector<double> &b,
   
 void pcg::create_sparse(size_t N, size_t *cpt, size_t *rpt, double *datapt, SpMat &mat) {
 
+  /*
     size_t *pointerB = new size_t[N + 1]();
     size_t *pointerE = new size_t[N + 1]();
     size_t *update_intend_rpt = new size_t[cpt[N]]();
@@ -63,6 +67,9 @@ void pcg::create_sparse(size_t N, size_t *cpt, size_t *rpt, double *datapt, SpMa
     }
     
     mkl_sparse_d_create_csr(&mat, SPARSE_INDEX_BASE_ZERO, N, N, pointerB, pointerE, update_intend_rpt, update_intend_datapt);
+    */
+
+    mkl_sparse_d_create_csr(&mat, SPARSE_INDEX_BASE_ZERO, N, N, cpt, cpt+1, rpt, datapt);
 
     //delete[] pointerB, pointerE, update_intend_rpt, update_intend_datapt;
 }
@@ -156,7 +163,9 @@ void pcg::matrix_vector_product(const SpMat *A, const double *b, double *q)
 void pcg::precond_solve(SpMat *lap, const double *r, double *x, double *y)
 {
     // lower solve
+    Timer t; t.start();
     mkl_sparse_d_trsv(SPARSE_OPERATION_TRANSPOSE, 1, *lap, MDG, r, y);
+    t.stop(); t_lower_solve += t.elapsed();
 
     // upper triangular solve
     //mkl_sparse_d_trsv(SPARSE_OPERATION_NON_TRANSPOSE, 1, *lap, MDG, y, x);
@@ -175,7 +184,9 @@ void pcg::precond_solve(SpMat *lap, const double *r, double *x, double *y)
     }
     */
 
+    t.start();
     this->upper_solve(y, 0, std::log2(nThreads), 0, S.size()-1, 0, nThreads);
+    t.stop(); t_upper_solve += t.elapsed();
 
     for (int i=0; i<G.N; i++) x[i] = y[i];
 }
@@ -213,7 +224,12 @@ void pcg::upper_solve(double *b, int depth, int target,
         }
         auto time_e = std::chrono::steady_clock::now();
         auto elapsed = time_e - time_s;
-        //std::cout << "depth: " << depth << " thread " << omp_get_thread_num() << " cpu: " << cpu_num << " time: " << std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count() << "\n";
+        int  cpu_num = sched_getcpu();
+        std::cout << "depth: " << depth 
+          << " thread " << std::this_thread::get_id() 
+          << " cpu: " << cpu_num 
+          << " time: " << std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count() 
+          << "\n";
     }
     else
     {
@@ -235,8 +251,14 @@ void pcg::upper_solve(double *b, int depth, int target,
         }
         auto time_e = std::chrono::steady_clock::now();
         auto elapsed = time_e - time_s;
-        //int cpu_num = sched_getcpu();
-        //std::cout << "depth(separator): " << depth << " thread " << omp_get_thread_num() << " cpu: " << cpu_num  << " time: " << std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count() << " length: " << result_idx.at(start + total_size) - result_idx.at(start + total_size - 1) << "\n";
+        
+        int cpu_num = sched_getcpu();
+        std::cout << "depth(separator): " << depth 
+          << " thread " << std::this_thread::get_id() 
+          << " cpu: " << cpu_num  
+          << " time: " << std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count() 
+          << " length: " << S.at(start + total_size) - S.at(start + total_size - 1) 
+          << "\n";
 
         /* recursive call */
         int core_id = (core_begin + core_end) / 2;
@@ -257,5 +279,12 @@ void pcg::upper_solve(double *b, int depth, int target,
     }
 }
 
-
+pcg::~pcg() {
+  std::cout<<"\n-----------------------"
+    <<"\nall iterations: "<<t_itr
+    <<"\nlower solve: "<<t_lower_solve
+    <<"\nupper solve: "<<t_upper_solve
+    <<"\n-----------------------\n"
+    <<std::endl;
+}
 
