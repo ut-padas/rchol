@@ -1,5 +1,4 @@
 #include "pcg.hpp"
-#include "timer.hpp"
 
 #define MKL_INT size_t
 #include "mkl_spblas.h"
@@ -30,6 +29,15 @@ pcg::pcg(const SparseCSR &A, const std::vector<double> &b,
   SpMat Amat, Gmat;
   create_sparse(A.N, A.rowPtr, A.colIdx, A.val, Amat);
   create_sparse(G.N, G.rowPtr, G.colIdx, G.val, Gmat);
+
+  mkl_sparse_optimize(Amat);
+  mkl_sparse_optimize(Gmat);
+  
+  // matrix descr for A
+  MDA.type = SPARSE_MATRIX_TYPE_GENERAL;
+  //MDA.type = SPARSE_MATRIX_TYPE_SYMMETRIC;
+  //MDA.mode = SPARSE_FILL_MODE_UPPER;
+  //MDA.diag = SPARSE_DIAG_NON_UNIT;
 
   // matrix descr for G
   MDG.type = SPARSE_MATRIX_TYPE_TRIANGULAR;
@@ -126,44 +134,37 @@ void pcg::iteration(const SpMat *A, const double *b, SpMat *lap,
 
 void pcg::matrix_vector_product(const SpMat *A, const double *b, double *q)
 {
-    matrix_descr des;
-    //des.type = SPARSE_MATRIX_TYPE_GENERAL;
-    des.type = SPARSE_MATRIX_TYPE_SYMMETRIC;
-    //des.mode = SPARSE_FILL_MODE_UPPER;
-    //des.diag = SPARSE_DIAG_NON_UNIT;
-    mkl_sparse_d_mv(SPARSE_OPERATION_NON_TRANSPOSE, 1, *A, des, b, 0, q);
+    timer.start();
+    mkl_sparse_d_mv(SPARSE_OPERATION_NON_TRANSPOSE, 1, *A, MDA, b, 0, q);
+    timer.stop(); t_matvec += timer.elapsed();
 }
 
-
-void pcg::precond_solve(SpMat *lap, const double *r, double *x, double *y)
+void pcg::precond_solve(SpMat *Gmat, const double *r, double *x, double *temp)
 {
     // lower solve
-    Timer t; t.start();
-    mkl_sparse_d_trsv(SPARSE_OPERATION_TRANSPOSE, 1, *lap, MDG, r, y);
-    t.stop(); t_lower_solve += t.elapsed();
+    timer.start();
+    mkl_sparse_d_trsv(SPARSE_OPERATION_TRANSPOSE, 1, *Gmat, MDG, r, temp);
+    timer.stop(); t_lower_solve += timer.elapsed();
 
     // upper triangular solve
-    //mkl_sparse_d_trsv(SPARSE_OPERATION_NON_TRANSPOSE, 1, *lap, MDG, y, x);
+    timer.start();
+    mkl_sparse_d_trsv(SPARSE_OPERATION_NON_TRANSPOSE, 1, *Gmat, MDG, temp, x);
+    timer.stop(); t_upper_solve += timer.elapsed();
+   /*
+    std::cout<<"x: \n";
+    for (int i=0; i<G.N; i++) std::cout<<" "<<x[i];
+    std::cout<<std::endl;
+
+    timer.start();
+    this->upper_solve(temp, 0, std::log2(nThreads), 0, S.size()-1, 0, nThreads);
+    timer.stop(); t_upper_solve += timer.elapsed();
+
+    for (int i=0; i<G.N; i++) x[i] = temp[i];
     
-    /*
-    for (int r=G.N-1; r>=0; r--) {
-      assert(G.colIdx[ G.rowPtr[r] ] == r);
-      x[r] = y[r];
-      for (int i=G.rowPtr[r]+1; i<G.rowPtr[r+1]; i++) {
-        int c = G.colIdx[i];
-        double v = G.val[i];
-        x[r] -= x[c] * v;
-        assert(c > r);
-      }
-      x[r] /= G.val[ G.rowPtr[r] ];
-    }
-    */
-
-    t.start();
-    this->upper_solve(y, 0, std::log2(nThreads), 0, S.size()-1, 0, nThreads);
-    t.stop(); t_upper_solve += t.elapsed();
-
-    for (int i=0; i<G.N; i++) x[i] = y[i];
+    std::cout<<"x: \n";
+    for (int i=0; i<G.N; i++) std::cout<<" "<<x[i];
+    std::cout<<std::endl;
+*/
 }
 
 void pcg::upper_solve(double *b, int depth, int target, 
@@ -257,6 +258,7 @@ void pcg::upper_solve(double *b, int depth, int target,
 pcg::~pcg() {
   std::cout<<"\n-----------------------"
     <<"\nall iterations: "<<t_itr
+    <<"\nmatvec: "<<t_matvec
     <<"\nlower solve: "<<t_lower_solve
     <<"\nupper solve: "<<t_upper_solve
     <<"\n-----------------------\n"

@@ -4,7 +4,7 @@ OBJS := $(patsubst %.cpp,%.o,$(wildcard *.cpp rchol/*.cpp rchol_lap/*.cpp util/*
 OBJS := $(filter-out ex_laplace.o ex_laplace_parallel.o csr/driver.o,$(OBJS))
 
 #CFLAG = -Wall -g -Irchol/ -Irchol_lap/ -Iutil/ -Icsr/
-CFLAG = -Wall -O3 -Irchol/ -Irchol_lap/ -Iutil/ -Icsr/
+CFLAG = -Wall -O3 -xHost -Irchol/ -Irchol_lap/ -Iutil/ -Icsr/
 LDFLAG = -lmkl_intel_ilp64 -mkl
 
 

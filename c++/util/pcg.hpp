@@ -2,6 +2,7 @@
 #define pcg_hpp
 
 #include "sparse.hpp"
+#include "timer.hpp"
 
 #define MKL_INT size_t
 #include "mkl_spblas.h"
@@ -34,9 +35,12 @@ private:
   std::vector<int> S;
   int nThreads;
 
+  matrix_descr MDA;
   matrix_descr MDG;
 
+  Timer  timer;
   double t_itr = 0;
+  double t_matvec = 0;
   double t_upper_solve = 0;
   double t_lower_solve = 0;
 };
