@@ -9,3 +9,6 @@ bak/*
 driver
 driver_parallel
 
+*.txt
+*.job
+

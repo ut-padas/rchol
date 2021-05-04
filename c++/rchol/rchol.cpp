@@ -23,7 +23,7 @@ void rchol(const SparseCSR &A, SparseCSR &G) {
       rowPtrL, colIdxL, valL, rowPtr, colIdx, val);
   // change edge values to positive and begin factorization
   change_to_positive_edge(valL);
-  std::vector<size_t> result_idx = {0, rowPtrL.size() - 1};
+  std::vector<int> result_idx = {0, int(rowPtrL.size()-1)};
   rchol_lap(rowPtrL, colIdxL, valL, G.rowPtr, G.colIdx, G.val, G.N, result_idx);
 }
 

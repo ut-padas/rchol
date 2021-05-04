@@ -10,7 +10,7 @@
 
 
 int main(int argc, char *argv[]) {
-  int n = 128; // DoF in every dimension
+  int n = 64; // DoF in every dimension
   int threads = 1;
   for (int i=0; i<argc; i++) {
     if (!strcmp(argv[i], "-n"))
@@ -22,8 +22,13 @@ int main(int argc, char *argv[]) {
  
   // SDDM matrix from 3D constant Poisson equation
   SparseCSR A;
-  //A = laplace_3d(n); // n x n x n grid
-  A.read_mkt_file("/home1/06108/chaochen/matrices/parabolic_fem.mtx");
+  A = laplace_3d(n); // n x n x n grid
+  //A.read_mkt_file("/home1/06108/chaochen/matrices/parabolic_fem.mtx");
+  //A.read_mkt_file("/home1/06108/chaochen/matrices/ecology2.mtx");
+  //A.read_mkt_file("/home1/06108/chaochen/matrices/apache2.mtx");
+  //A.read_mkt_file("/home1/06108/chaochen/matrices/G3_circuit.mtx");
+  //A.read_mkt_file("/home1/06108/chaochen/matrices/vc_laplace_128_1e5.mtx");
+  //A.read_mkt_file("/home1/06108/chaochen/matrices/aniso_laplace_128.mtx");
 
   // random RHS
   int N = A.size();
@@ -34,7 +39,8 @@ int main(int argc, char *argv[]) {
   Timer t; t.start();
   SparseCSR G;
   std::vector<size_t> P;
-  rchol(A, G, P, threads);
+  std::vector<int> S;
+  rchol(A, G, P, S, threads);
   t.stop();
   std::cout<<"Setup time: "<<t.elapsed()<<std::endl;
   std::cout<<"Fill-in ratio: "<<2.*G.nnz()/A.nnz()<<std::endl;
@@ -50,7 +56,7 @@ int main(int argc, char *argv[]) {
   std::vector<double> x;
   
   t.start();
-  pcg(Aperm, bperm, tol, maxit, G, x, relres, itr);
+  pcg(Aperm, bperm, S, threads, tol, maxit, G, x, relres, itr);
   t.stop();
 
   std::cout<<"Solve time: "<<t.elapsed()<<std::endl;

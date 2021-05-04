@@ -12,7 +12,8 @@ typedef sparse_matrix_t SpMat;
 
 class pcg{
 public:
-  pcg(const SparseCSR &A, const std::vector<double> &b, double tol, int maxit,
+  pcg(const SparseCSR &A, const std::vector<double> &b, 
+      const std::vector<int> &S, int nt, double tol, int maxit,
       const SparseCSR &G, std::vector<double> &x, double &relres, int &itr);
 private:
   void create_sparse(size_t N, size_t *cpt, size_t *rpt, double *datapt, SpMat &mat);
@@ -23,6 +24,10 @@ private:
   size_t ps;
   double tolerance;
   int maxSteps;
+
+  SparseCSR G;
+  std::vector<int> seperators;
+  int nThreads;
 };
 
 

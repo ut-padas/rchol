@@ -34,7 +34,8 @@ SparseCSR remove_diagonal(const SparseCSR &A, std::vector<size_t> &rowPtr, std::
 }
 
 // multithread version
-void rchol(const SparseCSR &A, SparseCSR &G, std::vector<size_t> &permutation, int threads) {
+void rchol(const SparseCSR &A, SparseCSR &G, std::vector<size_t> &permutation, 
+    std::vector<int> &S, int threads) {
 
   if(threads <= 0)
     throw std::invalid_argument( "thread number should be positive" );
@@ -61,13 +62,12 @@ void rchol(const SparseCSR &A, SparseCSR &G, std::vector<size_t> &permutation, i
   // calculate permuation
   Separator_info separator = find_separator(no_diag, 1, (size_t)(std::log2(threads) + 1));
   std::copy(separator.p->begin(), separator.p->end(), std::back_inserter(permutation));
-  std::vector<size_t> result_idx;
-  result_idx.push_back(0);
+  S.resize( separator.val->size()+1, 0 );
   for(size_t i = 0; i < separator.val->size(); i++)
   {
-    result_idx.push_back(separator.val->at(i) + result_idx[result_idx.size() - 1]);
+    S[i+1] = separator.val->at(i) + S[i];
   }
-  result_idx[result_idx.size() - 1]++;
+  S.back()++; // artifitial vertex
   reorder(A, rowPtr, colIdx, val, permutation);
   delete separator.p;
   delete separator.val;
@@ -88,5 +88,5 @@ void rchol(const SparseCSR &A, SparseCSR &G, std::vector<size_t> &permutation, i
       rowPtrL, colIdxL, valL, rowPtr, colIdx, val);
   // change edge values to positive and begin factorization
   change_to_positive_edge(valL);
-  rchol_lap(rowPtrL, colIdxL, valL, G.rowPtr, G.colIdx, G.val, G.N, result_idx);
+  rchol_lap(rowPtrL, colIdxL, valL, G.rowPtr, G.colIdx, G.val, G.N, S);
 }

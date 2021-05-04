@@ -74,10 +74,10 @@ struct Edge_info {
 
 
 /* functions set up */
-void process_array(const Sparse_storage_input *input, std::vector<size_t> &result_idx, size_t depth, size_t target, std::vector<gsl_spmatrix *> &lap, size_t start, size_t total_size, int core_begin, int core_end); // read in matlab array to gsl sparray
-std::vector<Edge_info> & recursive_calculation(std::vector<size_t> &result_idx, size_t depth, std::vector<gsl_spmatrix *> &lap, double *diagpt, size_t start, size_t total_size, size_t target, int core_begin, int core_end);
+void process_array(const Sparse_storage_input *input, std::vector<int> &result_idx, size_t depth, size_t target, std::vector<gsl_spmatrix *> &lap, size_t start, size_t total_size, int core_begin, int core_end); // read in matlab array to gsl sparray
+std::vector<Edge_info> & recursive_calculation(std::vector<int> &result_idx, size_t depth, std::vector<gsl_spmatrix *> &lap, double *diagpt, size_t start, size_t total_size, size_t target, int core_begin, int core_end);
 /* functions for factoring Cholesky */
-void cholesky_factorization(std::vector<gsl_spmatrix *> &lap, std::vector<size_t> &result_idx, Sparse_storage_output *output);
+void cholesky_factorization(std::vector<gsl_spmatrix *> &lap, std::vector<int> &result_idx, Sparse_storage_output *output);
 
 void linear_update(gsl_spmatrix *b);
 /* sampling algorithm */
@@ -94,7 +94,7 @@ int NUM_THREAD = 0;
 
 
 
-void rchol_lap(Sparse_storage_input *input, Sparse_storage_output *output, std::vector<size_t> &result_idx, int thread)
+void rchol_lap(Sparse_storage_input *input, Sparse_storage_output *output, std::vector<int> &result_idx, int thread)
 {
     NUM_THREAD = thread;
     cpu_set_t cpuset; 
@@ -136,7 +136,7 @@ void rchol_lap(Sparse_storage_input *input, Sparse_storage_output *output, std::
 
 
 void rchol_lap(std::vector<size_t> &rowPtrA, std::vector<size_t> &colIdxA, 
-    std::vector<double> &valA, size_t* &colPtrG, size_t* &rowIdxG, double* &valG, size_t &sizeG, std::vector<size_t> &idx) {
+    std::vector<double> &valA, size_t* &colPtrG, size_t* &rowIdxG, double* &valG, size_t &sizeG, std::vector<int> &idx) {
   Sparse_storage_input input;
   input.colPtr = &rowPtrA;
   input.rowIdx = &colIdxA;
@@ -184,7 +184,7 @@ bool uni(Sample a, Sample b)
 
 
 
-std::vector<Edge_info> & recursive_calculation(std::vector<size_t> &result_idx, size_t depth, std::vector<gsl_spmatrix *> &lap, double *diagpt, size_t start, size_t total_size, size_t target, int core_begin, int core_end)
+std::vector<Edge_info> & recursive_calculation(std::vector<int> &result_idx, size_t depth, std::vector<gsl_spmatrix *> &lap, double *diagpt, size_t start, size_t total_size, size_t target, int core_begin, int core_end)
 {
 
     int core_id = (core_begin + core_end) / 2;
@@ -394,7 +394,7 @@ auto elapsed1 = end1 - start1;
 
 /* main routine for Cholesky */
 
-void cholesky_factorization(std::vector<gsl_spmatrix *> &lap, std::vector<size_t> &result_idx, Sparse_storage_output *output)
+void cholesky_factorization(std::vector<gsl_spmatrix *> &lap, std::vector<int> &result_idx, Sparse_storage_output *output)
 {
     // calculate nonzeros and create lower triangular matrix
     size_t m = lap.size();
@@ -775,7 +775,7 @@ bool compare1 (Edge_info *i, Edge_info *j)
 }
 /* read in matlab array */
 
-void process_array(const Sparse_storage_input *input, std::vector<size_t> &result_idx, size_t depth, size_t target, std::vector<gsl_spmatrix *> &lap, size_t start, size_t total_size, int core_begin, int core_end)
+void process_array(const Sparse_storage_input *input, std::vector<int> &result_idx, size_t depth, size_t target, std::vector<gsl_spmatrix *> &lap, size_t start, size_t total_size, int core_begin, int core_end)
 {
     int core_id = (core_begin + core_end) / 2;
     cpu_set_t cpuset;
@@ -815,8 +815,12 @@ void process_array(const Sparse_storage_input *input, std::vector<size_t> &resul
     else
     {
         /* code */   
-        auto future = std::async(std::launch::async, process_array, input, std::ref(result_idx), depth + 1, target, std::ref(lap), (total_size - 1) / 2 + start, (total_size - 1) / 2, core_id, core_end); 
-        process_array(input, result_idx, depth + 1, target, lap, start, (total_size - 1) / 2, core_begin, core_id);
+        auto future = std::async(std::launch::async, process_array, input, std::ref(result_idx), 
+            depth + 1, target, std::ref(lap), (total_size - 1) / 2 + start, (total_size - 1) / 2, 
+            core_id, core_end); 
+        
+        process_array(input, result_idx, depth + 1, target, lap, 
+            start, (total_size - 1) / 2, core_begin, core_id);
 
         // synchronize
         future.wait();

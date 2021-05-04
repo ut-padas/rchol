@@ -9,10 +9,16 @@ typedef sparse_matrix_t SpMat;
 
 #include <iostream>
 #include <chrono>
+#include <cassert>
 
 
-pcg::pcg(const SparseCSR &A, const std::vector<double> &b, double tol, int maxit,
+pcg::pcg(const SparseCSR &A, const std::vector<double> &b, 
+    const std::vector<int> &S, int nt, double tol, int maxit,
     const SparseCSR &G, std::vector<double> &x, double &relres, int &itr) {
+
+  this->G = G;
+  this->seperators = S;
+  this->nThreads = nt;
 
   this->ps = A.N;
   this->tolerance = tol;
@@ -153,7 +159,18 @@ void pcg::precond_solve(SpMat *lap, const double *b, double *ret)
  
     // upper triangular solve
     mkl_sparse_d_trsv(SPARSE_OPERATION_NON_TRANSPOSE, 1, *lap, des, x, ret);
-
+    /*for (int r=G.N-1; r>=0; r--) {
+      assert(G.colIdx[ G.rowPtr[r] ] == r);
+      ret[r] = x[r];
+      for (int i=G.rowPtr[r]+1; i<G.rowPtr[r+1]; i++) {
+        int c = G.colIdx[i];
+        int v = G.val[i];
+        ret[r] -= ret[c] * v;
+        assert(c > r);
+      }
+      ret[r] /= G.val[ G.rowPtr[r] ];
+    }
+    */
 
     delete[] x;
 }
