@@ -156,22 +156,21 @@ void pcg::precond_solve(SpMat *lap, const double *b, double *ret)
 
     mkl_sparse_d_trsv(SPARSE_OPERATION_TRANSPOSE, 1, *lap, des, b, x);
 
- 
     // upper triangular solve
-    mkl_sparse_d_trsv(SPARSE_OPERATION_NON_TRANSPOSE, 1, *lap, des, x, ret);
-    /*for (int r=G.N-1; r>=0; r--) {
+    //mkl_sparse_d_trsv(SPARSE_OPERATION_NON_TRANSPOSE, 1, *lap, des, x, ret);
+    
+    for (int r=G.N-1; r>=0; r--) {
       assert(G.colIdx[ G.rowPtr[r] ] == r);
       ret[r] = x[r];
       for (int i=G.rowPtr[r]+1; i<G.rowPtr[r+1]; i++) {
         int c = G.colIdx[i];
-        int v = G.val[i];
+        double v = G.val[i];
         ret[r] -= ret[c] * v;
         assert(c > r);
       }
       ret[r] /= G.val[ G.rowPtr[r] ];
     }
-    */
-
+   
     delete[] x;
 }
 

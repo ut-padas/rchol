@@ -22,6 +22,8 @@ public:
   size_t size() const;
   size_t nnz() const;
 
+  void show(std::string) const;
+
   ~SparseCSR();
 
 public:

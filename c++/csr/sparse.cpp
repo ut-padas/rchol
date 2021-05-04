@@ -160,6 +160,9 @@ SparseCSR::~SparseCSR() {
   }
 }
 
+void SparseCSR::show(std::string name) const {
+  print(*this, name);
+}
 
 void print(const SparseCSR &A, std::string name) {
   std::cout<<name<<" rowPtr:\n";
