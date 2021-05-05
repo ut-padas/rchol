@@ -22,7 +22,7 @@ pcg::pcg(const SparseCSR &A, const std::vector<double> &b,
   this->S = S; this->S.back()--; // remove artifitial vertex
   this->nThreads = nt;
 
-  this->ps = A.N;
+  this->N = A.N;
   this->tolerance = tol;
   this->maxSteps = maxit;
 
@@ -46,7 +46,7 @@ pcg::pcg(const SparseCSR &A, const std::vector<double> &b,
 
   Timer t; t.start();
   this->iteration(&Amat, b.data(), &Gmat, x, relres, itr);
-  t.stop(); t_itr = t.elapsed();
+  t.stop(); t_pcg = t.elapsed();
 
   mkl_sparse_destroy(Amat);
   mkl_sparse_destroy(Gmat);
@@ -57,80 +57,86 @@ void pcg::create_sparse(size_t N, size_t *cpt, size_t *rpt, double *datapt, SpMa
     mkl_sparse_d_create_csr(&mat, SPARSE_INDEX_BASE_ZERO, N, N, cpt, cpt+1, rpt, datapt);
 }
 
-
-void pcg::iteration(const SpMat *A, const double *b, SpMat *lap,
+void pcg::iteration(const SpMat *Amat, const double *b, SpMat *Gmat,
     std::vector<double> &x, double &relres, int &itr) 
 {
-    auto start = std::chrono::steady_clock::now();
-    auto end = std::chrono::steady_clock::now();
-    auto elapsed = end - start;
-
-
-    start = std::chrono::steady_clock::now();
     // set initial
-    x.resize(ps);
+    x.resize(N, 0);
 
     // residual
-    double *r = new double[ps]();
-    cblas_dcopy(ps, b, 1, r, 1);
-    // iterations
-    int n_iters = 0;
+    double *r = new double[N]();
+    copy(b, r);
+    
+    double *z = new double[N]();
+    precond_solve(Gmat, r, z);
+    
+    double *p = new double[N]();
+    copy(z, p);
+    
+    double *q = new double[N](); // q = A * p
 
-
-    // used for storing previous residual and preconditioner applied to r
-    double *prev_r = new double[ps]();
-    double *prev_cond = new double[ps]();
-    double *p = new double[ps]();
-    double *temp = new double[ps]();
-    double *q = new double[ps]();
-    double *work = new double[ps](); // working memory for preconditioner solve
-    while(cblas_dnrm2(ps, r, 1) > cblas_dnrm2(ps, b, 1) * tolerance && n_iters < this->maxSteps)
-    {
+    Timer t; t.start();
+    int k = 0; // iteration count
+    double a1, a2, rz, nr;
+    double nb = norm(b);
+    double err = nb * tolerance;
+    while (k < maxSteps) {
         
-        this->precond_solve(lap, r, temp, work);
+      matvec(Amat, p, q);
+      
+      rz = dot(r, z);
+      a1 = rz / dot(p, q);
 
-        if (n_iters == 0)
-        {
-            cblas_dcopy(ps, temp, 1, p, 1);
-        }
-        else
-        {
-            double d1 = cblas_ddot(ps, r, 1, temp, 1);
-            double d2 = cblas_ddot(ps, prev_r, 1, prev_cond, 1);
-            cblas_dscal(ps, d1 / d2, p, 1);
-            cblas_daxpy(ps, 1, temp, 1, p, 1);
-        }
+      axpy(a1, p, x.data());
+      axpy(-a1, q, r);
 
-        
-        this->matrix_vector_product(A, p, q);
-        double d1 = cblas_ddot(ps, p, 1, r, 1);
-        double d2 = cblas_ddot(ps, p, 1, q, 1);
-        double alpha = d1 / d2;
-        cblas_daxpy(ps, alpha, p, 1, x.data(), 1);
+      nr = norm(r);
+      if (nr < err) break;
 
-        cblas_dcopy(ps, r, 1, prev_r, 1);
-        cblas_dcopy(ps, temp, 1, prev_cond, 1);
-        cblas_daxpy(ps, -alpha, q, 1, r, 1);
+      precond_solve(Gmat, r, z);
 
-        n_iters++;
-        //std::cout << "current iters: " << n_iters << " current residual: " << cblas_dnrm2(ps, r, 1) / cblas_dnrm2(ps, b, 1) << "\n";
+      a2 = dot(r, z) / rz;
+      xpay(z, a2, p);
+      
+      k++;
     }
-    end = std::chrono::steady_clock::now();
-    elapsed += end - start;
-    //std::cout << "total time: " << std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count() << " \n";
-    this->matrix_vector_product(A, x.data(), q);
-    cblas_daxpy(ps, -1, b, 1, q, 1);
-    relres = cblas_dnrm2(ps, q, 1) / cblas_dnrm2(ps, b, 1);
-    itr = n_iters;
-    //std::cout << "pcg reached a relative residual of " << cblas_dnrm2(ps, q, 1) / cblas_dnrm2(ps, b, 1) << " after " << n_iters << " iterations\n";
-    delete[] r;
-    delete[] prev_r;
-    delete[] prev_cond;
-    delete[] p;
-    delete[] temp;
-    delete[] q;
+
+    relres = nr / nb;
+    itr = k;
+    t.stop(); t_itr = t.elapsed();
+
+    // free memory
+    delete[] r, z, p, q;
 }
 
+void pcg::copy(const double *src, double *des) {
+    cblas_dcopy(N, src, 1, des, 1);
+}
+
+void pcg::axpy(double a, double *x, double *y) {
+    cblas_daxpy(N, a, x, 1, y, 1);
+}
+
+void pcg::xpay(double *x, double a, double *y) {
+    for (int i=0; i<N; i++) {
+      y[i] = x[i] + a*y[i];
+    }
+}
+
+double pcg::norm(const double *r) {
+    return cblas_dnrm2(N, r, 1);
+}
+
+double pcg::dot(double *a, double *b) {
+  return cblas_ddot(N, a, 1, b, 1);
+}
+
+void pcg::matvec(const SpMat *A, const double *b, double *q)
+{
+    timer.start();
+    mkl_sparse_d_mv(SPARSE_OPERATION_NON_TRANSPOSE, 1, *A, MDA, b, 0, q);
+    timer.stop(); t_matvec += timer.elapsed();
+}
 
 void pcg::matrix_vector_product(const SpMat *A, const double *b, double *q)
 {
@@ -139,32 +145,25 @@ void pcg::matrix_vector_product(const SpMat *A, const double *b, double *q)
     timer.stop(); t_matvec += timer.elapsed();
 }
 
-void pcg::precond_solve(SpMat *Gmat, const double *r, double *x, double *temp)
+void pcg::precond_solve(SpMat *Gmat, const double *r, double *x)
 {
     // lower solve
     timer.start();
-    mkl_sparse_d_trsv(SPARSE_OPERATION_TRANSPOSE, 1, *Gmat, MDG, r, temp);
+    mkl_sparse_d_trsv(SPARSE_OPERATION_TRANSPOSE, 1, *Gmat, MDG, r, x);
     timer.stop(); t_lower_solve += timer.elapsed();
 
     // upper triangular solve
+#if 0 
+    // include '-lmkl_intel_ilp64' in linking flag
     timer.start();
     mkl_sparse_d_trsv(SPARSE_OPERATION_NON_TRANSPOSE, 1, *Gmat, MDG, temp, x);
     timer.stop(); t_upper_solve += timer.elapsed();
-   /*
-    std::cout<<"x: \n";
-    for (int i=0; i<G.N; i++) std::cout<<" "<<x[i];
-    std::cout<<std::endl;
+#else
 
     timer.start();
-    this->upper_solve(temp, 0, std::log2(nThreads), 0, S.size()-1, 0, nThreads);
+    this->upper_solve(x, 0, std::log2(nThreads), 0, S.size()-1, 0, nThreads);
     timer.stop(); t_upper_solve += timer.elapsed();
-
-    for (int i=0; i<G.N; i++) x[i] = temp[i];
-    
-    std::cout<<"x: \n";
-    for (int i=0; i<G.N; i++) std::cout<<" "<<x[i];
-    std::cout<<std::endl;
-*/
+#endif
 }
 
 void pcg::upper_solve(double *b, int depth, int target, 
@@ -199,12 +198,12 @@ void pcg::upper_solve(double *b, int depth, int target,
             b[r] /= G.val[ G.rowPtr[r] ];
         }
         auto time_e = std::chrono::steady_clock::now();
-        auto elapsed = time_e - time_s;
+        auto elaNed = time_e - time_s;
         int  cpu_num = sched_getcpu();
         std::cout << "depth: " << depth 
           << " thread " << std::this_thread::get_id() 
           << " cpu: " << cpu_num 
-          << " time: " << std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count() 
+          << " time: " << std::chrono::duration_cast<std::chrono::milliseconds>(elaNed).count() 
           << "\n";
     }
     else
@@ -226,30 +225,29 @@ void pcg::upper_solve(double *b, int depth, int target,
             b[r] /= G.val[ G.rowPtr[r] ];
         }
         auto time_e = std::chrono::steady_clock::now();
-        auto elapsed = time_e - time_s;
+        auto elaNed = time_e - time_s;
         
         int cpu_num = sched_getcpu();
         std::cout << "depth(separator): " << depth 
           << " thread " << std::this_thread::get_id() 
           << " cpu: " << cpu_num  
-          << " time: " << std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count() 
+          << " time: " << std::chrono::duration_cast<std::chrono::milliseconds>(elaNed).count() 
           << " length: " << S.at(start + total_size) - S.at(start + total_size - 1) 
           << "\n";
 
         /* recursive call */
         int core_id = (core_begin + core_end) / 2;
-        /*
+        
+#if 1
         this->upper_solve(b, depth + 1, target, (total_size - 1) / 2 + start, (total_size - 1) / 2, 
             core_id, core_end);
         
-        this->upper_solve(b, depth + 1, target, start, (total_size - 1) / 2, 
-            core_begin, core_id);
-        */
-        
+#else   
         std::async(std::launch::async, &pcg::upper_solve, this,
             b, depth + 1, target, (total_size - 1) / 2 + start, (total_size - 1) / 2, 
             core_id, core_end);
-        
+#endif
+
         this->upper_solve(b, depth + 1, target, start, (total_size - 1) / 2, 
             core_begin, core_id);
     }
@@ -257,10 +255,12 @@ void pcg::upper_solve(double *b, int depth, int target,
 
 pcg::~pcg() {
   std::cout<<"\n-----------------------"
-    <<"\nall iterations: "<<t_itr
-    <<"\nmatvec: "<<t_matvec
-    <<"\nlower solve: "<<t_lower_solve
-    <<"\nupper solve: "<<t_upper_solve
+    <<"\nPCG: "<<t_pcg
+    <<"\niteration: "<<t_itr
+    <<"\n\tmatvec: "<<t_matvec
+    <<"\n\tlower solve: "<<t_lower_solve
+    <<"\n\tupper solve: "<<t_upper_solve
+    <<"\n\trest: "<<t_itr-t_matvec-t_lower_solve-t_upper_solve
     <<"\n-----------------------\n"
     <<std::endl;
 }

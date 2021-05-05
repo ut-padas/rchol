@@ -42,6 +42,8 @@ driver: ex_laplace.o $(OBJS)
 driver_parallel: ex_laplace_parallel.o $(OBJS)
 	icpc $^ -o $@ $(CFLAG) $(LDFLAG)
 	
+run: $(EXE)
+	./$(EXE)
 	
 clean:
 	rm -f $(EXE) *.o rchol/*.o rchol_lap/*.o util/*.o csr/*.o
