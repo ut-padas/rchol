@@ -28,6 +28,9 @@ private:
   void precond_solve(SpMat *lap, const double *b, double *ret);
   void upper_solve(double*, int, int, int, int, int, int);
 
+  //void lower_solve(double*);
+  void lower_solve(double*, int, int, int, int, int, int);
+
 private:
   void copy(const double*, double*);
   void axpy(double, double*, double*);
