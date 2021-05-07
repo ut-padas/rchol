@@ -65,17 +65,16 @@ void pcg::iteration(const SpMat *Amat, const double *b, SpMat *Gmat,
 
     // residual
     double *r = new double[N]();
-    copy(b, r);
-    
     double *z = new double[N]();
-    precond_solve(Gmat, r, z);
-    
-    double *p = new double[N]();
-    copy(z, p);
-    
+    double *p = new double[N]();    
     double *q = new double[N](); // q = A * p
 
     Timer t; t.start();
+
+    copy(b, r);
+    precond_solve(Gmat, r, z);
+    copy(z, p);
+    
     int k = 0; // iteration count
     double a1, a2, rz, nr;
     double nb = norm(b);
@@ -238,18 +237,29 @@ void pcg::upper_solve(double *b, int depth, int target,
         /* recursive call */
         int core_id = (core_begin + core_end) / 2;
         
-#if 1
-        this->upper_solve(b, depth + 1, target, (total_size - 1) / 2 + start, (total_size - 1) / 2, 
+#if 0
+        this->upper_solve(b, depth + 1, target, (total_size - 1) / 2 + start, (total_size - 1) / 2,
             core_id, core_end);
         
-#else   
-        std::async(std::launch::async, &pcg::upper_solve, this,
+#elif 0   
+        auto left = std::async(std::launch::async, &pcg::upper_solve, this,
             b, depth + 1, target, (total_size - 1) / 2 + start, (total_size - 1) / 2, 
             core_id, core_end);
+
+#else
+        std::thread t(&pcg::upper_solve, this,
+            b, depth + 1, target, (total_size - 1) / 2 + start, (total_size - 1) / 2, 
+            core_id, core_end);
+
 #endif
+        //auto right = std::async(std::launch::async, &pcg::upper_solve, this,
+        //    b, depth + 1, target, start, (total_size - 1) / 2, 
+        //    core_id, core_end);
 
         this->upper_solve(b, depth + 1, target, start, (total_size - 1) / 2, 
             core_begin, core_id);
+    
+        t.join();
     }
 }
 
