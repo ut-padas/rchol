@@ -10,6 +10,20 @@
 #include "mkl_types.h"
 
 typedef sparse_matrix_t SpMat;
+  
+// sparse vector
+struct nonzero {
+  public:
+    nonzero() {}
+    nonzero(int r, double v): row(r), value(v){}
+    //bool operator < (const nonzero &other) const {return row<other.row;}
+    static bool greater (const nonzero &first, const nonzero &second) {return first.row>second.row;}
+    bool operator == (const nonzero &other) {return row==other.row;}
+    void operator = (const nonzero &other) {row=other.row; value=other.value;}
+  public:
+    int row;
+    double value;
+};
 
 class pcg{
 public:
@@ -29,7 +43,8 @@ private:
   void upper_solve(double*, int, int, int, int, int, int);
 
   //void lower_solve(double*);
-  void lower_solve(double*, int, int, int, int, int, int);
+  
+  std::vector<nonzero> lower_solve(double*, int, int, int, int, int, int);
 
 private:
   void copy(const double*, double*);
@@ -56,6 +71,7 @@ private:
   double t_matvec = 0;
   double t_upper_solve = 0;
   double t_lower_solve = 0;
+
 };
 
 

@@ -12,7 +12,7 @@ typedef sparse_matrix_t SpMat;
 #include <cassert>
 #include <cmath>
 #include <future>
-
+#include <algorithm>
 
 pcg::pcg(const SparseCSR &A, const std::vector<double> &b, 
     const std::vector<int> &S, int nt, double tol, int maxit,
@@ -188,7 +188,7 @@ void pcg::lower_solve(double *b) {
 }
 */
 
-void pcg::lower_solve(double *b, int depth, int target, 
+std::vector<nonzero> pcg::lower_solve(double *b, int depth, int target, 
     int start, int total_size, int core_begin, int core_end)
 {
 
@@ -205,6 +205,7 @@ void pcg::lower_solve(double *b, int depth, int target,
     if(target == depth)
     {
         auto time_s = std::chrono::steady_clock::now();
+        std::vector<nonzero> spvec; spvec.reserve(40);
         int  C0 = S.at(start);
         int  C1 = S.at(start + total_size);
         for (int c = C0; c < C1; c++)
@@ -215,7 +216,10 @@ void pcg::lower_solve(double *b, int depth, int target,
             {
                 int    r = G.colIdx[i];
                 double v = G.val[i];
-                b[r] -= b[c] * v;
+                if (r < C1) // current node
+                  b[r] -= b[c] * v;
+                else // ancester
+                  spvec.push_back( nonzero(r, b[c]*v) );
                 assert(r > c);
             }
         }
@@ -227,13 +231,59 @@ void pcg::lower_solve(double *b, int depth, int target,
           << " cpu: " << cpu_num 
           << " time: " << std::chrono::duration_cast<std::chrono::milliseconds>(elaNed).count() 
           << "\n";
+
+        return spvec;
     }
     else
     {
+        /* recursive call */
+        int core_id = (core_begin + core_end) / 2;
+        
+#if 0
+        this->lower_solve(b, depth + 1, target, (total_size - 1) / 2 + start, (total_size - 1) / 2,
+            core_id, core_end);
+        
+#else   
+        auto left = std::async(std::launch::async, &pcg::lower_solve, this,
+            b, depth + 1, target, (total_size - 1) / 2 + start, (total_size - 1) / 2, 
+            core_id, core_end);
+
+#endif
+        //auto right = std::async(std::launch::async, &pcg::lower_solve, this,
+        //    b, depth + 1, target, start, (total_size - 1) / 2, 
+        //    core_id, core_end);
+
+        auto rvec = lower_solve(b, depth + 1, target, start, (total_size - 1) / 2, 
+            core_begin, core_id);
+        
         /* separator portion */
         auto time_s = std::chrono::steady_clock::now();
         int  C0 = S.at(start + total_size - 1);
         int  C1 = S.at(start + total_size);
+
+        // concatenate two vectors
+        auto spvec = left.get();
+        spvec.reserve(spvec.size()+rvec.size());
+        spvec.insert(spvec.end(), rvec.begin(), rvec.end());
+        // sort to descending order
+        std::sort(spvec.begin(), spvec.end(), nonzero::greater);
+        // merge nonzero values
+        int i=0;
+        for (unsigned j=1; j<spvec.size(); j++) {
+          if (spvec[i] == spvec[j]) spvec[i].value += spvec[j].value;
+          else {
+            assert(spvec[i].row > spvec[j].row);
+            i++;
+            spvec[i] = spvec[j];
+          }
+        }
+        // add to right-hand-side
+        for (; i>=0; i--) {
+          if (spvec[i].row < C1) b[ spvec[i].row ] -= spvec[i].value;
+          else break;
+        }
+        spvec.resize(i+1);
+
         for (int c = C0; c < C1; c++)
         {  
             assert(c == G.colIdx[ G.rowPtr[c] ]);
@@ -242,7 +292,10 @@ void pcg::lower_solve(double *b, int depth, int target,
             {
                 int    r = G.colIdx[i];
                 double v = G.val[i];
-                b[r] -= b[c] * v;
+                if (r < C1) // current node
+                  b[r] -= b[c] * v;
+                else // ancester
+                  spvec.push_back( nonzero(r, b[c]*v) );
                 assert(r > c);
             }
         }
@@ -257,32 +310,7 @@ void pcg::lower_solve(double *b, int depth, int target,
           << " length: " << S.at(start + total_size) - S.at(start + total_size - 1) 
           << "\n";
 
-        /* recursive call */
-        int core_id = (core_begin + core_end) / 2;
-        
-#if 0
-        this->lower_solve(b, depth + 1, target, (total_size - 1) / 2 + start, (total_size - 1) / 2,
-            core_id, core_end);
-        
-#elif 1   
-        auto left = std::async(std::launch::async, &pcg::lower_solve, this,
-            b, depth + 1, target, (total_size - 1) / 2 + start, (total_size - 1) / 2, 
-            core_id, core_end);
-
-#else
-        std::thread t(&pcg::lower_solve, this,
-            b, depth + 1, target, (total_size - 1) / 2 + start, (total_size - 1) / 2, 
-            core_id, core_end);
-
-#endif
-        //auto right = std::async(std::launch::async, &pcg::lower_solve, this,
-        //    b, depth + 1, target, start, (total_size - 1) / 2, 
-        //    core_id, core_end);
-
-        this->lower_solve(b, depth + 1, target, start, (total_size - 1) / 2, 
-            core_begin, core_id);
-    
-        //t.join();
+        return spvec;
     }
 }
 
