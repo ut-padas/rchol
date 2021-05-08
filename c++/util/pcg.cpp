@@ -269,17 +269,17 @@ void pcg::lower_solve_csr_parallel(double *b, int depth, int target,
         /* recursive call */
         int core_id = (core_begin + core_end) / 2;
         
-#if 1
+#if 0
         this->lower_solve_csr_parallel(b, depth + 1, target, (total_size - 1) / 2 + start, 
             (total_size - 1) / 2, core_id, core_end);
         
 #elif 0   
-        auto left = std::async(std::launch::async, &pcg::upper_solve, this,
+        auto left = std::async(std::launch::async, &pcg::lower_solve_csr_parallel, this,
             b, depth + 1, target, (total_size - 1) / 2 + start, (total_size - 1) / 2, 
             core_id, core_end);
 
 #else
-        std::thread t(&pcg::upper_solve, this,
+        std::thread t(&pcg::lower_solve_csr_parallel, this,
             b, depth + 1, target, (total_size - 1) / 2 + start, (total_size - 1) / 2, 
             core_id, core_end);
 
@@ -288,7 +288,7 @@ void pcg::lower_solve_csr_parallel(double *b, int depth, int target,
         this->lower_solve_csr_parallel(b, depth + 1, target, start, (total_size - 1) / 2, 
             core_begin, core_id);
     
-        //t.join();
+        t.join();
 
         /* separator portion */
         auto time_s = std::chrono::steady_clock::now();
