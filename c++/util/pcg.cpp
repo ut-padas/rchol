@@ -18,7 +18,7 @@ pcg::pcg(const SparseCSR &A, const std::vector<double> &b,
     const std::vector<int> &S, int nt, double tol, int maxit,
     const SparseCSR &G, std::vector<double> &x, double &relres, int &itr) {
 
-  this->G = G; this->transpose();
+  this->G = G; //this->transpose();
   this->S = S; this->S.back()--; // remove artifitial vertex
   this->nThreads = nt;
 
@@ -155,10 +155,11 @@ void pcg::precond_solve(SpMat *Gmat, const double *r, double *x)
     // lower solve
     timer.start();
     this->copy(r, x);
-    //this->lower_solve(x);
-    //this->lower_solve_csc(x, 0, std::log2(nThreads), 0, S.size()-1, 0, nThreads);
+    //this->lower_solve_csc_serial(x);
+    //this->lower_solve_csc_parallel(x, 0, std::log2(nThreads), 0, S.size()-1, 0, nThreads);
+    this->lower_solve_csc_async(x, 0, std::log2(nThreads), 0, S.size()-1, 0, nThreads);
     //this->lower_solve_csr_serial(x);
-    this->lower_solve_csr_parallel(x, 0, std::log2(nThreads), 0, S.size()-1, 0, nThreads);
+    //this->lower_solve_csr_parallel(x, 0, std::log2(nThreads), 0, S.size()-1, 0, nThreads);
     timer.stop(); t_lower_solve += timer.elapsed();
 #endif
 
@@ -331,7 +332,7 @@ void pcg::lower_solve_csc_serial(double *b) {
   }
 }
 
-std::vector<nonzero> pcg::lower_solve_csc(double *b, int depth, int target, 
+std::vector<nonzero> pcg::lower_solve_csc_parallel(double *b, int depth, int target, 
     int start, int total_size, int core_begin, int core_end)
 {
 
@@ -387,16 +388,12 @@ std::vector<nonzero> pcg::lower_solve_csc(double *b, int depth, int target,
             core_id, core_end);
         
 #else   
-        auto left = std::async(std::launch::async, &pcg::lower_solve_csc, this,
+        auto left = std::async(std::launch::async, &pcg::lower_solve_csc_parallel, this,
             b, depth + 1, target, (total_size - 1) / 2 + start, (total_size - 1) / 2, 
             core_id, core_end);
 
 #endif
-        //auto right = std::async(std::launch::async, &pcg::lower_solve, this,
-        //    b, depth + 1, target, start, (total_size - 1) / 2, 
-        //    core_id, core_end);
-
-        auto rvec = lower_solve_csc(b, depth + 1, target, start, (total_size - 1) / 2, 
+        auto rvec = lower_solve_csc_parallel(b, depth + 1, target, start, (total_size - 1) / 2, 
             core_begin, core_id);
         
         /* separator portion */
@@ -454,6 +451,103 @@ std::vector<nonzero> pcg::lower_solve_csc(double *b, int depth, int target,
           << "\n";
 
         return spvec;
+    }
+}
+
+void pcg::lower_solve_csc_async(double *b, int depth, int target, 
+    int start, int total_size, int core_begin, int core_end)
+{
+
+    // pin to a core
+    if(sched_getcpu() != core_begin)
+    {
+        cpu_set_t cpuset;
+        CPU_ZERO(&cpuset);
+        CPU_SET(core_begin, &cpuset);
+        sched_setaffinity(0, sizeof(cpuset), &cpuset);
+    }
+
+    /* base case */
+    if(target == depth)
+    {
+        auto time_s = std::chrono::steady_clock::now();
+        int  C0 = S.at(start);
+        int  C1 = S.at(start + total_size);
+        for (int c = C0; c < C1; c++)
+        {  
+            assert(c == G.colIdx[ G.rowPtr[c] ]);
+            b[c] /= G.val[ G.rowPtr[c] ];
+            for (int i = G.rowPtr[c]+1; i < G.rowPtr[c+1]; i++) 
+            {
+                int    r = G.colIdx[i];
+                double v = G.val[i];
+                  
+                b[r] -= b[c] * v;
+                assert(r > c);
+            }
+        }
+        auto time_e = std::chrono::steady_clock::now();
+        auto elapsed = time_e - time_s;
+        int  cpu_num = sched_getcpu();
+        std::cout << "depth: " << depth 
+          << " thread " << std::this_thread::get_id() 
+          << " cpu: " << cpu_num 
+          << " time: " << std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count() 
+          << "\n";
+
+    }
+    else
+    {
+        /* recursive call */
+        int core_id = (core_begin + core_end) / 2;
+        
+#if 0
+        this->lower_solve(b, depth + 1, target, (total_size - 1) / 2 + start, (total_size - 1) / 2,
+            core_id, core_end);
+       
+#elif 1
+        std::thread t(&pcg::lower_solve_csc_async, this,
+            b, depth + 1, target, (total_size - 1) / 2 + start, (total_size - 1) / 2, 
+            core_id, core_end);
+
+#else   
+        auto left = std::async(std::launch::async, &pcg::lower_solve_csc_async, this,
+            b, depth + 1, target, (total_size - 1) / 2 + start, (total_size - 1) / 2, 
+            core_id, core_end);
+
+#endif
+
+        lower_solve_csc_async(b, depth + 1, target, start, (total_size - 1) / 2, 
+            core_begin, core_id);
+        t.join();
+        
+        /* separator portion */
+        auto time_s = std::chrono::steady_clock::now();
+        int  C0 = S.at(start + total_size - 1);
+        int  C1 = S.at(start + total_size);
+        for (int c = C0; c < C1; c++)
+        {  
+            assert(c == G.colIdx[ G.rowPtr[c] ]);
+            b[c] /= G.val[ G.rowPtr[c] ];
+            for (int i = G.rowPtr[c]+1; i < G.rowPtr[c+1]; i++) 
+            {
+                int    r = G.colIdx[i];
+                double v = G.val[i];
+                  
+                b[r] -= b[c] * v;
+                assert(r > c);
+            }
+        }
+        auto time_e = std::chrono::steady_clock::now();
+        auto elapsed = time_e - time_s;
+        int cpu_num = sched_getcpu();
+        std::cout << "depth(separator): " << depth 
+          << " thread " << std::this_thread::get_id() 
+          << " cpu: " << cpu_num  
+          << " time: " << std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count() 
+          << " length: " << S.at(start + total_size) - S.at(start + total_size - 1) 
+          << "\n";
+
     }
 }
 
