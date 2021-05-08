@@ -156,8 +156,9 @@ void pcg::precond_solve(SpMat *Gmat, const double *r, double *x)
     timer.start();
     this->copy(r, x);
     //this->lower_solve(x);
-    this->lower_solve_csr_serial(x);
     //this->lower_solve_csc(x, 0, std::log2(nThreads), 0, S.size()-1, 0, nThreads);
+    //this->lower_solve_csr_serial(x);
+    this->lower_solve_csr_parallel(x, 0, std::log2(nThreads), 0, S.size()-1, 0, nThreads);
     timer.stop(); t_lower_solve += timer.elapsed();
 #endif
 
@@ -173,18 +174,6 @@ void pcg::precond_solve(SpMat *Gmat, const double *r, double *x)
     this->upper_solve(x, 0, std::log2(nThreads), 0, S.size()-1, 0, nThreads);
     timer.stop(); t_upper_solve += timer.elapsed();
 #endif
-}
-
-void pcg::lower_solve_csc_serial(double *b) {
-  for (int c=0; c<G.N; c++) {
-    assert(G.colIdx[G.rowPtr[c]] == c);
-    b[c] /= G.val[ G.rowPtr[c] ];
-    for (int i=G.rowPtr[c]+1; i<G.rowPtr[c+1]; i++) {
-      int    r = G.colIdx[i];
-      double v = G.val[i];
-      b[r] -= b[c] * v;
-    }
-  }
 }
 
 //void pcg::transpose(SparseCSR &G, SparseCSR &Gt) {
@@ -232,6 +221,113 @@ void pcg::lower_solve_csr_serial(double *b) {
     }
     b[r] /= Gt.val[ Gt.rowPtr[r+1]-1 ];
     assert(r == Gt.colIdx[ Gt.rowPtr[r+1]-1 ]);
+  }
+}
+
+void pcg::lower_solve_csr_parallel(double *b, int depth, int target, 
+    int start, int total_size, int core_begin, int core_end)
+{
+
+    // pin to a core
+    if(sched_getcpu() != core_begin)
+    {
+        cpu_set_t cpuset;
+        CPU_ZERO(&cpuset);
+        CPU_SET(core_begin, &cpuset);
+        sched_setaffinity(0, sizeof(cpuset), &cpuset);
+    }
+
+    /* base case */
+    if(target == depth)
+    {
+        auto time_s = std::chrono::steady_clock::now();
+        int  R0 = S.at(start);
+        int  R1 = S.at(start + total_size);
+        for (int r = R0; r < R1; r++)
+        {  
+            for (int i = Gt.rowPtr[r]; i < Gt.rowPtr[r+1]-1; i++) 
+            {
+                int    c = Gt.colIdx[i];
+                double v = Gt.val[i];
+                b[r] -= b[c] * v;
+                assert(c < r);
+            }
+            b[r] /= Gt.val[ Gt.rowPtr[r+1]-1 ];
+            assert(r == Gt.colIdx[ Gt.rowPtr[r+1]-1 ]);
+        }
+        auto time_e = std::chrono::steady_clock::now();
+        auto elapsed = time_e - time_s;
+        int  cpu_num = sched_getcpu();
+        std::cout << "depth: " << depth 
+          << " thread " << std::this_thread::get_id() 
+          << " cpu: " << cpu_num 
+          << " time: " << std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count() 
+          << "\n";
+    }
+    else
+    {
+        /* recursive call */
+        int core_id = (core_begin + core_end) / 2;
+        
+#if 1
+        this->lower_solve_csr_parallel(b, depth + 1, target, (total_size - 1) / 2 + start, 
+            (total_size - 1) / 2, core_id, core_end);
+        
+#elif 0   
+        auto left = std::async(std::launch::async, &pcg::upper_solve, this,
+            b, depth + 1, target, (total_size - 1) / 2 + start, (total_size - 1) / 2, 
+            core_id, core_end);
+
+#else
+        std::thread t(&pcg::upper_solve, this,
+            b, depth + 1, target, (total_size - 1) / 2 + start, (total_size - 1) / 2, 
+            core_id, core_end);
+
+#endif
+
+        this->lower_solve_csr_parallel(b, depth + 1, target, start, (total_size - 1) / 2, 
+            core_begin, core_id);
+    
+        //t.join();
+
+        /* separator portion */
+        auto time_s = std::chrono::steady_clock::now();
+        int  R0 = S.at(start + total_size - 1);
+        int  R1 = S.at(start + total_size);
+        for (int r = R0; r < R1; r++)
+        {  
+            for (int i = Gt.rowPtr[r]; i < Gt.rowPtr[r+1]-1; i++) 
+            {
+                int    c = Gt.colIdx[i];
+                double v = Gt.val[i];
+                b[r] -= b[c] * v;
+                assert(c < r);
+            }
+            b[r] /= Gt.val[ Gt.rowPtr[r+1]-1 ];
+            assert(r == Gt.colIdx[ Gt.rowPtr[r+1]-1 ]);
+        }
+        auto time_e = std::chrono::steady_clock::now();
+        auto elapsed = time_e - time_s;
+        int cpu_num = sched_getcpu();
+        std::cout << "depth(separator): " << depth 
+          << " thread " << std::this_thread::get_id() 
+          << " cpu: " << cpu_num  
+          << " time: " << std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count() 
+          << " length: " << S.at(start + total_size) - S.at(start + total_size - 1) 
+          << "\n";
+
+    }
+}
+
+void pcg::lower_solve_csc_serial(double *b) {
+  for (int c=0; c<G.N; c++) {
+    assert(G.colIdx[G.rowPtr[c]] == c);
+    b[c] /= G.val[ G.rowPtr[c] ];
+    for (int i=G.rowPtr[c]+1; i<G.rowPtr[c+1]; i++) {
+      int    r = G.colIdx[i];
+      double v = G.val[i];
+      b[r] -= b[c] * v;
+    }
   }
 }
 

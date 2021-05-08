@@ -47,6 +47,7 @@ private:
   void lower_solve_csr_serial(double*);
   
   std::vector<nonzero> lower_solve_csc(double*, int, int, int, int, int, int);
+  void lower_solve_csr_parallel(double*, int, int, int, int, int, int);
 
 private:
   void copy(const double*, double*);
