@@ -42,9 +42,11 @@ private:
   void precond_solve(SpMat *lap, const double *b, double *ret);
   void upper_solve(double*, int, int, int, int, int, int);
 
-  //void lower_solve(double*);
+  void transpose();
+  void lower_solve_csc_serial(double*);
+  void lower_solve_csr_serial(double*);
   
-  std::vector<nonzero> lower_solve(double*, int, int, int, int, int, int);
+  std::vector<nonzero> lower_solve_csc(double*, int, int, int, int, int, int);
 
 private:
   void copy(const double*, double*);
@@ -59,6 +61,7 @@ private:
   double tolerance;
 
   SparseCSR G;
+  SparseCSR Gt;
   std::vector<int> S;
   int nThreads;
 

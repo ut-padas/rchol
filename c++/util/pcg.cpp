@@ -18,7 +18,7 @@ pcg::pcg(const SparseCSR &A, const std::vector<double> &b,
     const std::vector<int> &S, int nt, double tol, int maxit,
     const SparseCSR &G, std::vector<double> &x, double &relres, int &itr) {
 
-  this->G = G;
+  this->G = G; this->transpose();
   this->S = S; this->S.back()--; // remove artifitial vertex
   this->nThreads = nt;
 
@@ -156,7 +156,8 @@ void pcg::precond_solve(SpMat *Gmat, const double *r, double *x)
     timer.start();
     this->copy(r, x);
     //this->lower_solve(x);
-    this->lower_solve(x, 0, std::log2(nThreads), 0, S.size()-1, 0, nThreads);
+    this->lower_solve_csr_serial(x);
+    //this->lower_solve_csc(x, 0, std::log2(nThreads), 0, S.size()-1, 0, nThreads);
     timer.stop(); t_lower_solve += timer.elapsed();
 #endif
 
@@ -174,8 +175,7 @@ void pcg::precond_solve(SpMat *Gmat, const double *r, double *x)
 #endif
 }
 
-/*
-void pcg::lower_solve(double *b) {
+void pcg::lower_solve_csc_serial(double *b) {
   for (int c=0; c<G.N; c++) {
     assert(G.colIdx[G.rowPtr[c]] == c);
     b[c] /= G.val[ G.rowPtr[c] ];
@@ -186,9 +186,56 @@ void pcg::lower_solve(double *b) {
     }
   }
 }
-*/
 
-std::vector<nonzero> pcg::lower_solve(double *b, int depth, int target, 
+//void pcg::transpose(SparseCSR &G, SparseCSR &Gt) {
+void pcg::transpose() {
+  unsigned nnz = G.rowPtr[G.N];
+  std::vector<size_t> rowPtr; rowPtr.resize(G.N+1, 0);
+  std::vector<size_t> colIdx; colIdx.resize(nnz);
+  std::vector<double> val; val.resize(nnz);
+
+  std::vector<int> rnnz(G.N, 0);
+  for (unsigned i=0; i<nnz; i++) {
+    rnnz[ G.colIdx[i] ]++;
+  }
+  for (int i=0; i<G.N; i++)
+    rowPtr[i+1] = rowPtr[i] + rnnz[i];
+  assert(rowPtr[G.N] == nnz);
+
+  for (int i=0; i<G.N; i++)
+    rnnz[i] = 0;
+
+  for (int c=0; c<G.N; c++) {
+    for (int i=G.rowPtr[c]; i<G.rowPtr[c+1]; i++) {
+      int r = G.colIdx[i];
+      double v = G.val[i];
+
+      int idx = rowPtr[r] + rnnz[r];
+      rnnz[r]++;
+
+      colIdx[idx] = c;
+      val[idx] = v;
+    }
+  }
+
+  Gt.init(rowPtr, colIdx, val);
+  //Gt.show("transpose");
+}
+
+void pcg::lower_solve_csr_serial(double *b) {
+  for (int r=0; r<Gt.N; r++) {
+    for (int i=Gt.rowPtr[r]; i<Gt.rowPtr[r+1]-1; i++) {
+      int c = Gt.colIdx[i];
+      double v = Gt.val[i];
+      b[r] -= b[c] * v;
+      assert(c < r);
+    }
+    b[r] /= Gt.val[ Gt.rowPtr[r+1]-1 ];
+    assert(r == Gt.colIdx[ Gt.rowPtr[r+1]-1 ]);
+  }
+}
+
+std::vector<nonzero> pcg::lower_solve_csc(double *b, int depth, int target, 
     int start, int total_size, int core_begin, int core_end)
 {
 
@@ -244,7 +291,7 @@ std::vector<nonzero> pcg::lower_solve(double *b, int depth, int target,
             core_id, core_end);
         
 #else   
-        auto left = std::async(std::launch::async, &pcg::lower_solve, this,
+        auto left = std::async(std::launch::async, &pcg::lower_solve_csc, this,
             b, depth + 1, target, (total_size - 1) / 2 + start, (total_size - 1) / 2, 
             core_id, core_end);
 
@@ -253,7 +300,7 @@ std::vector<nonzero> pcg::lower_solve(double *b, int depth, int target,
         //    b, depth + 1, target, start, (total_size - 1) / 2, 
         //    core_id, core_end);
 
-        auto rvec = lower_solve(b, depth + 1, target, start, (total_size - 1) / 2, 
+        auto rvec = lower_solve_csc(b, depth + 1, target, start, (total_size - 1) / 2, 
             core_begin, core_id);
         
         /* separator portion */
