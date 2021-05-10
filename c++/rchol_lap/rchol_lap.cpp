@@ -114,22 +114,25 @@ void rchol_lap(Sparse_storage_input *input, Sparse_storage_output *output, std::
     sched_setaffinity(0, sizeof(cpuset), &cpuset);
     
 
+    auto start = std::chrono::steady_clock::now();
     std::vector<gsl_spmatrix *> *lap_val = new std::vector<gsl_spmatrix *>(input->colPtr->size() - 1);
     std::vector<gsl_spmatrix *> &lap = *lap_val;
     process_array(input, result_idx, 1, (size_t)(std::log2(NUM_THREAD) + 1), lap, 0, result_idx.size() - 1, 0, NUM_THREAD);
+    auto end = std::chrono::steady_clock::now();
+    std::cout << "alloc time: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()/1000. << " s\n";
     
 
-    auto start = std::chrono::steady_clock::now();
+    start = std::chrono::steady_clock::now();
     cholesky_factorization(lap, result_idx, output);
-    auto end = std::chrono::steady_clock::now();
-    std::cout << "chol time: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "\n";
+    end = std::chrono::steady_clock::now();
+    std::cout << "chol time: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()/1000. << " s\n";
 
 
     // clear memory
-    
+    start = std::chrono::steady_clock::now();
     clear_memory(lap);
-
-    
+    end = std::chrono::steady_clock::now();
+    std::cout << "free time: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()/1000. << " s\n";
 
 }
 
@@ -234,9 +237,9 @@ std::vector<Edge_info> & recursive_calculation(std::vector<int> &result_idx, siz
         time_e = std::chrono::steady_clock::now();
         elapsed += time_e - time_s;
 
-        std::cout << "depth: " << depth << " thread " << std::this_thread::get_id() << " cpu: " << cpu_num << " time: " << std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count() << "\n";
-        std::cout << "depth: " << depth << " length: " << result_idx.at(start) << " nztotal " << density << " density: " << density / (result_idx.at(start + total_size) - result_idx.at(start)) << "\n";
-        std::cout << "depth: " << depth << "\n";
+        //std::cout << "depth: " << depth << " thread " << std::this_thread::get_id() << " cpu: " << cpu_num << " time: " << std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count() << "\n";
+        //std::cout << "depth: " << depth << " length: " << result_idx.at(start) << " nztotal " << density << " density: " << density / (result_idx.at(start + total_size) - result_idx.at(start)) << "\n";
+        //std::cout << "depth: " << depth << "\n";
         //std::cout << omp_proc_bind_master << "  " << omp_get_proc_bind << "\n";
         return sep_edge;
     }
@@ -346,8 +349,8 @@ std::vector<Edge_info> & recursive_calculation(std::vector<int> &result_idx, siz
         }
         time_e = std::chrono::steady_clock::now();
         elapsed = time_e - time_s;
-        int cpu_num = sched_getcpu();
-        std::cout << "depth(separator): " << depth << " thread " << std::this_thread::get_id() << " cpu: " << cpu_num  << " time: " << std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count() << " length: " << result_idx.at(start + total_size) - result_idx.at(start + total_size - 1) << " nztotal " << density << " before: " << before_density / (result_idx.at(start + total_size) - result_idx.at(start + total_size - 1)) << " density: " << density / (result_idx.at(start + total_size) - result_idx.at(start + total_size - 1)) << "\n";
+        //int cpu_num = sched_getcpu();
+        //std::cout << "depth(separator): " << depth << " thread " << std::this_thread::get_id() << " cpu: " << cpu_num  << " time: " << std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count() << " length: " << result_idx.at(start + total_size) - result_idx.at(start + total_size - 1) << " nztotal " << density << " before: " << before_density / (result_idx.at(start + total_size) - result_idx.at(start + total_size - 1)) << " density: " << density / (result_idx.at(start + total_size) - result_idx.at(start + total_size - 1)) << "\n";
 		
         return sep_edge;
     }
@@ -404,7 +407,7 @@ void cholesky_factorization(std::vector<gsl_spmatrix *> &lap, std::vector<int> &
     auto end = std::chrono::steady_clock::now();
     auto elapsed = end - start;
     
-    std::cout << NUM_THREAD << "\n";
+   // std::cout << NUM_THREAD << "\n";
 
 
     start = std::chrono::steady_clock::now();
@@ -418,7 +421,7 @@ void cholesky_factorization(std::vector<gsl_spmatrix *> &lap, std::vector<int> &
     //     diagpt, 0, result_idx.size() - 1, 3);
     end = std::chrono::steady_clock::now();
     elapsed = end - start;
-    std::cout << "factor time: " << std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count() << "\n";
+    //std::cout << "factor time: " << std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count()/1000. << " s\n";
     size_t nzmax = 0;
     size_t edge = 0;
     for (size_t i = 0; i < lap.size(); i++)
@@ -426,9 +429,9 @@ void cholesky_factorization(std::vector<gsl_spmatrix *> &lap, std::vector<int> &
         nzmax += lap.at(i)->nz;
 	    edge += lap.at(i)->split;
     }
-    std::cout<< "nzmax: " << nzmax <<"\n";
-    std::cout<< "edge: " << edge <<"\n";
-    std::cout << "size of matrix length: " << m - 1 << "\n";
+    //std::cout<< "nzmax: " << nzmax <<"\n";
+    //std::cout<< "edge: " << edge <<"\n";
+    //std::cout << "size of matrix length: " << m - 1 << "\n";
 
 
     // return results back 

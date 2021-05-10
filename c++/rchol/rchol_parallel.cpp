@@ -2,6 +2,8 @@
 #include "util.hpp"
 #include "find_separator.hpp"
 #include "rchol_lap.hpp"
+#include "timer.hpp"
+
 #include <math.h> 
 #include <iostream>
 
@@ -43,6 +45,8 @@ void rchol(const SparseCSR &A, SparseCSR &G, std::vector<size_t> &permutation,
   if((threads & (threads - 1)) != 0)
     throw std::invalid_argument( "thread number should be a power of 2" );
 
+  Timer t; t.start();
+
   size_t N = A.size();
   size_t nnz = A.nnz();
   std::vector<size_t> rowPtr;
@@ -71,10 +75,11 @@ void rchol(const SparseCSR &A, SparseCSR &G, std::vector<size_t> &permutation,
   reorder(A, rowPtr, colIdx, val, permutation);
   delete separator.p;
   delete separator.val;
+  t.stop();
+  std::cout<<"Compute ordering: "<<t.elapsed()<<" s\n";
 
 
-
-
+  t.start();
   // upper triangular csr form
   std::vector<size_t> rowPtrU;
   std::vector<size_t> colIdxU;
@@ -86,7 +91,11 @@ void rchol(const SparseCSR &A, SparseCSR &G, std::vector<size_t> &permutation,
   std::vector<double> valL;
   convert_to_laplace(rowPtrU, colIdxU, valU, 
       rowPtrL, colIdxL, valL, rowPtr, colIdx, val);
+  t.stop(); //std::cout<<"Before rchol_lap: "<<t.elapsed()<<" s\n";
+
   // change edge values to positive and begin factorization
+  t.start();
   change_to_positive_edge(valL);
   rchol_lap(rowPtrL, colIdxL, valL, G.rowPtr, G.colIdx, G.val, G.N, S);
+  t.stop(); std::cout<<"Call rchol_lap: "<<t.elapsed()<<" s\n";
 }

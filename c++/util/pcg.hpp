@@ -78,6 +78,7 @@ private:
   double t_upper_solve = 0;
   double t_lower_solve = 0;
 
+  int nitr;
 };
 
 

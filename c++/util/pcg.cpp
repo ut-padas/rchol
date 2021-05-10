@@ -18,6 +18,8 @@ pcg::pcg(const SparseCSR &A, const std::vector<double> &b,
     const std::vector<int> &S, int nt, double tol, int maxit,
     const SparseCSR &G, std::vector<double> &x, double &relres, int &itr) {
 
+  std::cout<<"MKL threads: "<<mkl_get_max_threads()<<std::endl;
+
   this->G = G; //this->transpose();
   this->S = S; this->S.back()--; // remove artifitial vertex
   this->nThreads = nt;
@@ -75,11 +77,11 @@ void pcg::iteration(const SpMat *Amat, const double *b, SpMat *Gmat,
     precond_solve(Gmat, r, z);
     copy(z, p);
     
-    int k = 0; // iteration count
+    nitr = 0; // iteration count
     double a1, a2, rz, nr;
     double nb = norm(b);
     double err = nb * tolerance;
-    while (k < maxSteps) {
+    while (nitr < maxSteps) {
         
       matvec(Amat, p, q);
       
@@ -97,11 +99,11 @@ void pcg::iteration(const SpMat *Amat, const double *b, SpMat *Gmat,
       a2 = dot(r, z) / rz;
       xpay(z, a2, p);
       
-      k++;
+      nitr++;
     }
 
     relres = nr / nb;
-    itr = k;
+    itr = nitr;
     t.stop(); t_itr = t.elapsed();
 
     // free memory
@@ -657,6 +659,8 @@ pcg::~pcg() {
     <<"\n\tlower solve: "<<t_lower_solve
     <<"\n\tupper solve: "<<t_upper_solve
     <<"\n\trest: "<<t_itr-t_matvec-t_lower_solve-t_upper_solve
+    <<"\n\tlower solve/nitr: "<<t_lower_solve/(nitr+1)
+    <<"\n\tupper solve/nitr: "<<t_upper_solve/(nitr+1)
     <<"\n-----------------------\n"
     <<std::endl;
 }
