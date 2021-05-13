@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <immintrin.h>
+#include <sys/resource.h>
 #include <iostream>
 #include <typeinfo>
 #include <random>
@@ -7,7 +9,6 @@
 #include <algorithm>
 #include <iostream>
 #include <fstream>
-#include <sys/resource.h>
 #include <string>
 #include <sstream>
 #include <future>
@@ -87,7 +88,8 @@ double random_sampling2(gsl_spmatrix *cur, std::vector<gsl_spmatrix *> &lap, siz
 
 bool compare (Sample i, Sample j);
 /* clean up memory */
-void clear_memory(std::vector<gsl_spmatrix *> &lap);
+//void clear_memory(std::vector<gsl_spmatrix *> &lap);
+void clear_memory(std::vector<gsl_spmatrix *> &lap, std::vector<int> &result_idx, size_t depth, size_t target, size_t start, size_t total_size, int core_begin, int core_end);
 
 int NUM_THREAD = 0;
 
@@ -130,7 +132,9 @@ void rchol_lap(Sparse_storage_input *input, Sparse_storage_output *output, std::
 
     // clear memory
     start = std::chrono::steady_clock::now();
-    clear_memory(lap);
+    //clear_memory(lap);
+    clear_memory(lap, result_idx, 1, (size_t)(std::log2(NUM_THREAD) + 1), 0, result_idx.size() - 1, 0, NUM_THREAD);
+    delete lap_val;
     end = std::chrono::steady_clock::now();
     std::cout << "free time: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()/1000. << " s\n";
 
@@ -156,6 +160,7 @@ void rchol_lap(std::vector<size_t> &rowPtrA, std::vector<size_t> &colIdxA,
 
 
 /* clear memory */
+/*
 void clear_memory(std::vector<gsl_spmatrix *> &lap)
 {
     size_t i;
@@ -166,11 +171,44 @@ void clear_memory(std::vector<gsl_spmatrix *> &lap)
     }
     
     delete &lap;
-    
+}
+*/
 
+void clear_memory(std::vector<gsl_spmatrix *> &lap, std::vector<int> &result_idx, size_t depth, size_t target, size_t start, size_t total_size, int core_begin, int core_end)
+{
+    int core_id = (core_begin + core_end) / 2;
+    cpu_set_t cpuset;
+    CPU_ZERO(&cpuset);
+    CPU_SET(core_begin, &cpuset);
+    sched_setaffinity(0, sizeof(cpuset), &cpuset);
+    
+    // bottom level
+    if(target == depth)
+    {
+        for(size_t i = result_idx.at(start); i < result_idx.at(start + total_size); i++)
+        {
+            gsl_spmatrix_free(lap.at(i));
+        }
+    }
+    else
+    {
+        /* code */   
+        auto future = std::async(std::launch::async, clear_memory, std::ref(lap), 
+            std::ref(result_idx), 
+            depth + 1, target, (total_size - 1) / 2 + start, (total_size - 1) / 2, 
+            core_id, core_end); 
+        
+        clear_memory(lap, result_idx, depth + 1, target, 
+            start, (total_size - 1) / 2, core_begin, core_id);
+
+        for (size_t i = result_idx.at(start + total_size - 1); i < result_idx.at(start + total_size); i++)
+        {
+            gsl_spmatrix_free(lap.at(i));
+        }
+    }
+    
 }
 
-#include<immintrin.h>
 
 bool uni(Sample a, Sample b) 
 { 
