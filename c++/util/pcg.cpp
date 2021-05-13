@@ -155,14 +155,15 @@ void pcg::precond_solve(SpMat *Gmat, const double *r, double *x)
     timer.stop(); t_lower_solve += timer.elapsed();
 #else
     // lower solve
-    timer.start();
     this->copy(r, x);
+    timer.start();
     //this->lower_solve_csc_serial(x);
     //this->lower_solve_csc_parallel(x, 0, std::log2(nThreads), 0, S.size()-1, 0, nThreads);
     this->lower_solve_csc_async(x, 0, std::log2(nThreads), 0, S.size()-1, 0, nThreads);
     //this->lower_solve_csr_serial(x);
     //this->lower_solve_csr_parallel(x, 0, std::log2(nThreads), 0, S.size()-1, 0, nThreads);
     timer.stop(); t_lower_solve += timer.elapsed();
+    //std::cout<<"Finished lower solve."<<std::endl;
 #endif
 
     // upper triangular solve
@@ -176,6 +177,7 @@ void pcg::precond_solve(SpMat *Gmat, const double *r, double *x)
     timer.start();
     this->upper_solve(x, 0, std::log2(nThreads), 0, S.size()-1, 0, nThreads);
     timer.stop(); t_upper_solve += timer.elapsed();
+    //std::cout<<"Finished upper solve."<<std::endl;
 #endif
 }
 
@@ -491,11 +493,11 @@ void pcg::lower_solve_csc_async(double *b, int depth, int target,
         auto time_e = std::chrono::steady_clock::now();
         auto elapsed = time_e - time_s;
         int  cpu_num = sched_getcpu();
-        std::cout << "depth: " << depth 
-          << " thread " << std::this_thread::get_id() 
-          << " cpu: " << cpu_num 
-          << " time: " << std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count() 
-          << "\n";
+        //std::cout << "depth: " << depth 
+          //<< " thread " << std::this_thread::get_id() 
+          //<< " cpu: " << cpu_num 
+          //<< " time: " << std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count() 
+          //<< "\n";
 
     }
     else
@@ -522,6 +524,7 @@ void pcg::lower_solve_csc_async(double *b, int depth, int target,
         lower_solve_csc_async(b, depth + 1, target, start, (total_size - 1) / 2, 
             core_begin, core_id);
         t.join();
+        //left.wait();
         
         /* separator portion */
         auto time_s = std::chrono::steady_clock::now();
@@ -543,12 +546,12 @@ void pcg::lower_solve_csc_async(double *b, int depth, int target,
         auto time_e = std::chrono::steady_clock::now();
         auto elapsed = time_e - time_s;
         int cpu_num = sched_getcpu();
-        std::cout << "depth(separator): " << depth 
-          << " thread " << std::this_thread::get_id() 
-          << " cpu: " << cpu_num  
-          << " time: " << std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count() 
-          << " length: " << S.at(start + total_size) - S.at(start + total_size - 1) 
-          << "\n";
+        //std::cout << "depth(separator): " << depth 
+          //<< " thread " << std::this_thread::get_id() 
+          //<< " cpu: " << cpu_num  
+          //<< " time: " << std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count() 
+          //<< " length: " << S.at(start + total_size) - S.at(start + total_size - 1) 
+          //<< "\n";
 
     }
 }
@@ -587,11 +590,11 @@ void pcg::upper_solve(double *b, int depth, int target,
         auto time_e = std::chrono::steady_clock::now();
         auto elaNed = time_e - time_s;
         int  cpu_num = sched_getcpu();
-        std::cout << "depth: " << depth 
-          << " thread " << std::this_thread::get_id() 
-          << " cpu: " << cpu_num 
-          << " time: " << std::chrono::duration_cast<std::chrono::milliseconds>(elaNed).count() 
-          << "\n";
+        //std::cout << "depth: " << depth 
+          //<< " thread " << std::this_thread::get_id() 
+          //<< " cpu: " << cpu_num 
+          //<< " time: " << std::chrono::duration_cast<std::chrono::milliseconds>(elaNed).count() 
+          //<< "\n";
     }
     else
     {
@@ -615,12 +618,12 @@ void pcg::upper_solve(double *b, int depth, int target,
         auto elaNed = time_e - time_s;
         
         int cpu_num = sched_getcpu();
-        std::cout << "depth(separator): " << depth 
-          << " thread " << std::this_thread::get_id() 
-          << " cpu: " << cpu_num  
-          << " time: " << std::chrono::duration_cast<std::chrono::milliseconds>(elaNed).count() 
-          << " length: " << S.at(start + total_size) - S.at(start + total_size - 1) 
-          << "\n";
+        //std::cout << "depth(separator): " << depth 
+          //<< " thread " << std::this_thread::get_id() 
+          //<< " cpu: " << cpu_num  
+          //<< " time: " << std::chrono::duration_cast<std::chrono::milliseconds>(elaNed).count() 
+          //<< " length: " << S.at(start + total_size) - S.at(start + total_size - 1) 
+          //<< "\n";
 
         /* recursive call */
         int core_id = (core_begin + core_end) / 2;

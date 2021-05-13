@@ -826,7 +826,7 @@ void process_array(const Sparse_storage_input *input, std::vector<int> &result_i
             start, (total_size - 1) / 2, core_begin, core_id);
 
         // synchronize
-        future.wait();
+        //future.wait();
 
         // separator
         size_t i, j;
