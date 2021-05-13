@@ -45,6 +45,7 @@ int main(int argc, char *argv[]) {
   std::vector<int> S;
   rchol(A, G, P, S, threads);
   t.stop();
+  std::cout<<std::endl;
   std::cout<<"Setup time: "<<t.elapsed()<<std::endl;
   std::cout<<"Fill-in ratio: "<<2.*G.nnz()/A.nnz()<<std::endl;
 
@@ -64,7 +65,7 @@ int main(int argc, char *argv[]) {
   std::cout<<"Solve time: "<<t.elapsed()<<std::endl;
   std::cout<<"# CG iterations: "<<itr<<std::endl;
   std::cout<<"Relative residual: "<<relres<<std::endl;
-
+  std::cout<<std::endl;
 
   return 0;
 }

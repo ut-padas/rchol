@@ -19,6 +19,7 @@ pcg::pcg(const SparseCSR &A, const std::vector<double> &b,
     const SparseCSR &G, std::vector<double> &x, double &relres, int &itr) {
 
   std::cout<<"MKL threads: "<<mkl_get_max_threads()<<std::endl;
+  std::cout<<"Sparse solve threads: "<<S.size()/2<<std::endl;
 
   this->G = G; //this->transpose();
   this->S = S; this->S.back()--; // remove artifitial vertex
