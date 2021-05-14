@@ -440,26 +440,15 @@ void cholesky_factorization(std::vector<gsl_spmatrix *> &lap, std::vector<int> &
     // calculate nonzeros and create lower triangular matrix
     size_t m = lap.size();
     double *diagpt = new double[m]();
-    
+    std::cout << NUM_THREAD << "\n";
+
     auto start = std::chrono::steady_clock::now();
-    auto end = std::chrono::steady_clock::now();
-    auto elapsed = end - start;
-    
-   // std::cout << NUM_THREAD << "\n";
-
-
-    start = std::chrono::steady_clock::now();
-
-    /* recursive call */
-    //#pragma omp parallel
-    //#pragma omp single
     recursive_calculation(result_idx, 1, lap,
         diagpt, 0, result_idx.size() - 1, (size_t)(std::log2(NUM_THREAD) + 1), 0, NUM_THREAD);
-    // recursive_calculation(result_idx, 1, lap,
-    //     diagpt, 0, result_idx.size() - 1, 3);
-    end = std::chrono::steady_clock::now();
-    elapsed = end - start;
-    //std::cout << "factor time: " << std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count()/1000. << " s\n";
+    auto end = std::chrono::steady_clock::now();
+    auto elapsed = end - start;
+    std::cout << "factor time: " << std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count()/1000. << " s\n";
+
     size_t nzmax = 0;
     size_t edge = 0;
     for (size_t i = 0; i < lap.size(); i++)
@@ -470,7 +459,6 @@ void cholesky_factorization(std::vector<gsl_spmatrix *> &lap, std::vector<int> &
     //std::cout<< "nzmax: " << nzmax <<"\n";
     //std::cout<< "edge: " << edge <<"\n";
     //std::cout << "size of matrix length: " << m - 1 << "\n";
-
 
     // return results back 
 
@@ -484,10 +472,6 @@ void cholesky_factorization(std::vector<gsl_spmatrix *> &lap, std::vector<int> &
     output->val = datapt;
     output->N = m - 1;
     delete[] diagpt;
-
-    //mkl_sparse_d_create_csr(L, SPARSE_INDEX_BASE_ZERO, m - 1, m - 1, pointerB, pointerE, rpt, datapt);
-
-
 }
 
 
