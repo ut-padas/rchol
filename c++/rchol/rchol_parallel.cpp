@@ -1,6 +1,7 @@
 #include "rchol_parallel.hpp"
 #include "util.hpp"
-#include "find_separator.hpp"
+//#include "find_separator.hpp"
+#include "partition_and_order.hpp"
 #include "rchol_lap.hpp"
 #include "timer.hpp"
 
@@ -45,7 +46,7 @@ void rchol(const SparseCSR &A, SparseCSR &G, std::vector<size_t> &permutation,
   if((threads & (threads - 1)) != 0)
     throw std::invalid_argument( "thread number should be a power of 2" );
 
-  Timer t; t.start();
+  Timer t, t1; t.start();
 
   size_t N = A.size();
   size_t nnz = A.nnz();
@@ -64,6 +65,8 @@ void rchol(const SparseCSR &A, SparseCSR &G, std::vector<size_t> &permutation,
 
   
   // calculate permuation
+  t1.start();
+  /*
   Separator_info separator = find_separator(no_diag, 1, (size_t)(std::log2(threads) + 1));
   std::copy(separator.p->begin(), separator.p->end(), std::back_inserter(permutation));
   S.resize( separator.val->size()+1, 0 );
@@ -72,11 +75,15 @@ void rchol(const SparseCSR &A, SparseCSR &G, std::vector<size_t> &permutation,
     S[i+1] = separator.val->at(i) + S[i];
   }
   S.back()++; // artifitial vertex
-  reorder(A, rowPtr, colIdx, val, permutation);
   delete separator.p;
   delete separator.val;
-  t.stop();
-  std::cout<<"Compute ordering: "<<t.elapsed()<<" s\n";
+  */
+  
+  partition_and_ordering(no_diag, threads, permutation, S);
+  t.stop(); std::cout<<"find separator: "<<t.elapsed()<<" s\n";
+  
+  reorder(A, rowPtr, colIdx, val, permutation);
+  t.stop(); std::cout<<"Compute ordering: "<<t.elapsed()<<" s\n";
 
 
   t.start();
