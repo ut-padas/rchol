@@ -1,4 +1,5 @@
 #ifndef partition_and_ordering_hpp
+#define partition_and_ordering_hpp
 
 #include "sparse.hpp"
 #include <vector>

@@ -15,7 +15,10 @@
 #include <thread>
 #include <vector>
 #include "rchol_lap.hpp"
-#include "spcol.hpp"
+#include "spvec.hpp"
+
+
+typedef spvec<size_t, double> edge;
 
 
 struct Sparse_storage_input {
@@ -75,36 +78,29 @@ struct Edge_info {
 
 
 /* functions set up */
-void process_array(const Sparse_storage_input *input, std::vector<int> &result_idx, size_t depth, size_t target, std::vector<gsl_spmatrix *> &lap, size_t start, size_t total_size, int core_begin, int core_end); // read in matlab array to gsl sparray
-std::vector<Edge_info> & recursive_calculation(std::vector<int> &result_idx, size_t depth, std::vector<gsl_spmatrix *> &lap, double *diagpt, size_t start, size_t total_size, size_t target, int core_begin, int core_end);
+void process_array(const Sparse_storage_input *input, std::vector<int> &result_idx, size_t depth, size_t target, std::vector<edge> &lap, size_t start, size_t total_size, int core_begin, int core_end); // read in matlab array to gsl sparray
+std::vector<Edge_info> & recursive_calculation(std::vector<int> &result_idx, size_t depth, std::vector<edge> &lap, double *diagpt, size_t start, size_t total_size, size_t target, int core_begin, int core_end);
 /* functions for factoring Cholesky */
-void cholesky_factorization(std::vector<gsl_spmatrix *> &lap, std::vector<int> &result_idx, Sparse_storage_output *output);
+void cholesky_factorization(std::vector<edge> &lap, std::vector<int> &result_idx, Sparse_storage_output *output);
 
-void linear_update(gsl_spmatrix *b);
+void linear_update(edge *b);
 /* sampling algorithm */
-double random_sampling0(gsl_spmatrix *cur, std::vector<gsl_spmatrix *> &lap, size_t curcol, std::vector<Edge_info> &sep_edge, size_t l_bound, size_t r_bound);
-double random_sampling1(gsl_spmatrix *cur, std::vector<gsl_spmatrix *> &lap, size_t curcol, std::vector<Edge_info> &sep_edge, size_t l_bound, size_t r_bound);
-double random_sampling2(gsl_spmatrix *cur, std::vector<gsl_spmatrix *> &lap, size_t curcol, std::vector<Edge_info> &sep_edge, size_t l_bound, size_t r_bound);
+double random_sampling(edge *cur, std::vector<edge> &lap, size_t curcol, std::vector<Edge_info> &sep_edge, size_t l_bound, size_t r_bound);
 
 bool compare (Sample i, Sample j);
 /* clean up memory */
-void clear_memory(std::vector<gsl_spmatrix *> &lap, std::vector<int> &result_idx, size_t depth, size_t target, size_t start, size_t total_size, int core_begin, int core_end);
-
-int NUM_THREAD = 0;
-
+void clear_memory(std::vector<edge> &lap, std::vector<int> &result_idx, size_t depth, size_t target, size_t start, size_t total_size, int core_begin, int core_end);
 
 
 
 void rchol_lap(Sparse_storage_input *input, Sparse_storage_output *output, std::vector<int> &result_idx, int thread)
 {
-    NUM_THREAD = thread;
-    cpu_set_t cpuset; 
 
     //the CPU we whant to use
     int cpu = 0;
-
+    cpu_set_t cpuset; 
     CPU_ZERO(&cpuset);       //clears the cpuset
-    CPU_SET( cpu , &cpuset); //set CPU 2 on cpuset
+    CPU_SET(cpu , &cpuset);  //set CPU 2 on cpuset
     /*
     * cpu affinity for the calling thread 
     * first parameter is the pid, 0 = calling thread
@@ -116,9 +112,8 @@ void rchol_lap(Sparse_storage_input *input, Sparse_storage_output *output, std::
     
 
     auto start = std::chrono::steady_clock::now();
-    std::vector<gsl_spmatrix *> *lap_val = new std::vector<gsl_spmatrix *>(input->colPtr->size() - 1);
-    std::vector<gsl_spmatrix *> &lap = *lap_val;
-    process_array(input, result_idx, 1, (size_t)(std::log2(NUM_THREAD) + 1), lap, 0, result_idx.size() - 1, 0, NUM_THREAD);
+    std::vector<edge> lap(input->colPtr->size() - 1);
+    process_array(input, result_idx, 1, (size_t)(std::log2(thread) + 1), lap, 0, result_idx.size() - 1, 0, thread);
     auto end = std::chrono::steady_clock::now();
     std::cout << "alloc time: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()/1000. << " s\n";
     
@@ -131,8 +126,7 @@ void rchol_lap(Sparse_storage_input *input, Sparse_storage_output *output, std::
 
     // clear memory
     start = std::chrono::steady_clock::now();
-    clear_memory(lap, result_idx, 1, (size_t)(std::log2(NUM_THREAD) + 1), 0, result_idx.size() - 1, 0, NUM_THREAD);
-    delete lap_val;
+    clear_memory(lap, result_idx, 1, (size_t)(std::log2(thread) + 1), 0, result_idx.size() - 1, 0, thread);
     end = std::chrono::steady_clock::now();
     std::cout << "free time: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()/1000. << " s\n";
 
@@ -155,7 +149,7 @@ void rchol_lap(std::vector<size_t> &rowPtrA, std::vector<size_t> &colIdxA,
 }
 
 
-void clear_memory(std::vector<gsl_spmatrix *> &lap, std::vector<int> &result_idx, size_t depth, size_t target, size_t start, size_t total_size, int core_begin, int core_end)
+void clear_memory(std::vector<edge> &lap, std::vector<int> &result_idx, size_t depth, size_t target, size_t start, size_t total_size, int core_begin, int core_end)
 {
     int core_id = (core_begin + core_end) / 2;
     cpu_set_t cpuset;
@@ -168,7 +162,7 @@ void clear_memory(std::vector<gsl_spmatrix *> &lap, std::vector<int> &result_idx
     {
         for(size_t i = result_idx.at(start); i < result_idx.at(start + total_size); i++)
         {
-            gsl_spmatrix_free(lap.at(i));
+            lap[i].clear();
         }
     }
     else
@@ -184,7 +178,7 @@ void clear_memory(std::vector<gsl_spmatrix *> &lap, std::vector<int> &result_idx
 
         for (size_t i = result_idx.at(start + total_size - 1); i < result_idx.at(start + total_size); i++)
         {
-            gsl_spmatrix_free(lap.at(i));
+            lap[i].clear();
         }
     }
     
@@ -205,8 +199,7 @@ bool uni(Sample a, Sample b)
 
 
 
-
-std::vector<Edge_info> & recursive_calculation(std::vector<int> &result_idx, size_t depth, std::vector<gsl_spmatrix *> &lap, double *diagpt, size_t start, size_t total_size, size_t target, int core_begin, int core_end)
+std::vector<Edge_info> & recursive_calculation(std::vector<int> &result_idx, size_t depth, std::vector<edge> &lap, double *diagpt, size_t start, size_t total_size, size_t target, int core_begin, int core_end)
 {
 
     int core_id = (core_begin + core_end) / 2;
@@ -226,8 +219,8 @@ std::vector<Edge_info> & recursive_calculation(std::vector<int> &result_idx, siz
         
 
         //std::cout << "thread id: " << omp_get_thread_num() << "\n";
-		double density = 0;
-        int cpu_num = sched_getcpu();
+		    //double density = 0;
+        //int cpu_num = sched_getcpu();
         auto time_s = std::chrono::steady_clock::now();
         auto time_e = std::chrono::steady_clock::now();
         auto elapsed = time_s - time_e;
@@ -241,7 +234,7 @@ std::vector<Edge_info> & recursive_calculation(std::vector<int> &result_idx, siz
         {
             
             size_t current = i;
-            gsl_spmatrix *b = lap.at(current);
+            edge *b = &lap.at(current);
             if(b->nz - b->split > 0)
             {
 
@@ -249,8 +242,8 @@ std::vector<Edge_info> & recursive_calculation(std::vector<int> &result_idx, siz
                 
             }
         
-            diagpt[current] = random_sampling0(lap.at(current), lap, current, sep_edge, result_idx.at(start), result_idx.at(start + total_size));
-            density += lap.at(current)->nz;
+            diagpt[current] = random_sampling(lap.at(current), lap, current, sep_edge, result_idx.at(start), result_idx.at(start + total_size));
+            //density += lap.at(current)->nz;
         }
 
         time_e = std::chrono::steady_clock::now();
@@ -306,7 +299,7 @@ std::vector<Edge_info> & recursive_calculation(std::vector<int> &result_idx, siz
             Edge_info &temp = l_edge.at(i);
             if(temp.col >= l_bound && temp.col < r_bound)
             {
-                gsl_spmatrix_set(lap.at(temp.col), temp.row, 0, temp.val);
+                lap.at(temp.col).set(temp.row, 0, temp.val);
             }
             else
             {
@@ -320,7 +313,7 @@ std::vector<Edge_info> & recursive_calculation(std::vector<int> &result_idx, siz
             Edge_info &temp = r_edge.at(i);
             if(temp.col >= l_bound && temp.col < r_bound)
             {
-                gsl_spmatrix_set(lap.at(temp.col), temp.row, 0, temp.val);
+                edge_set(lap.at(temp.col), temp.row, 0, temp.val);
             }
             else
             {
@@ -331,8 +324,8 @@ std::vector<Edge_info> & recursive_calculation(std::vector<int> &result_idx, siz
         delete &r_edge;
 
         /* separator portion */
-        double density = 0;
-        double before_density = 0;
+        //double density = 0;
+        //double before_density = 0;
 /*
         for (size_t i = result_idx.at(start + total_size - 1); i < result_idx.at(start + total_size); i++)
         {
@@ -355,7 +348,7 @@ std::vector<Edge_info> & recursive_calculation(std::vector<int> &result_idx, siz
         {
             
             size_t current = i;
-            gsl_spmatrix *b = lap.at(current);
+            edge *b = &lap.at(current);
             if(b->nz - b->split > 0)
             {
                 
@@ -363,8 +356,8 @@ std::vector<Edge_info> & recursive_calculation(std::vector<int> &result_idx, siz
             }
 
             
-            diagpt[current] = random_sampling0(lap.at(current), lap, current, sep_edge, l_bound, r_bound);
-            density += lap.at(i)->nz;
+            diagpt[current] = random_sampling(lap.at(current), lap, current, sep_edge, l_bound, r_bound);
+            //density += lap.at(i)->nz;
         }
         time_e = std::chrono::steady_clock::now();
         elapsed = time_e - time_s;
@@ -377,7 +370,7 @@ std::vector<Edge_info> & recursive_calculation(std::vector<int> &result_idx, siz
 }
 
 
-void coalesce(std::vector<gsl_spmatrix *> &lap, size_t *cpt, size_t *rpt, double *datapt, double *diagpt)
+void coalesce(std::vector<edge*> &lap, size_t *cpt, size_t *rpt, double *datapt, double *diagpt)
 {
     size_t counter = 0;
     size_t m = lap.size() - 1;
@@ -386,7 +379,7 @@ void coalesce(std::vector<gsl_spmatrix *> &lap, size_t *cpt, size_t *rpt, double
     
     for (size_t i = 0; i < m; i++)
     {
-        gsl_spmatrix *toCopy = lap.at(i);
+        edge*toCopy = lap.at(i);
         size_t nz = toCopy->nz;
         size_t *irow = toCopy->i;
         double *data = toCopy->data;
@@ -409,19 +402,13 @@ void coalesce(std::vector<gsl_spmatrix *> &lap, size_t *cpt, size_t *rpt, double
 }
 
 
-
-auto start1 = std::chrono::steady_clock::now();
-auto end1 = std::chrono::steady_clock::now();
-auto elapsed1 = end1 - start1;
-
 /* main routine for Cholesky */
-
-void cholesky_factorization(std::vector<gsl_spmatrix *> &lap, std::vector<int> &result_idx, Sparse_storage_output *output)
+void cholesky_factorization(std::vector<edge> &lap, std::vector<int> &result_idx, Sparse_storage_output *output)
 {
     // calculate nonzeros and create lower triangular matrix
     size_t m = lap.size();
     double *diagpt = new double[m]();
-    std::cout << NUM_THREAD << "\n";
+    //std::cout << NUM_THREAD << "\n";
 
     auto start = std::chrono::steady_clock::now();
     recursive_calculation(result_idx, 1, lap,
@@ -456,197 +443,7 @@ void cholesky_factorization(std::vector<gsl_spmatrix *> &lap, std::vector<int> &
 }
 
 
-double random_sampling2(gsl_spmatrix *cur, std::vector<gsl_spmatrix *> &lap, size_t curcol, std::vector<Edge_info> &sep_edge, size_t l_bound, size_t r_bound)
-{
-
-    double *data = cur->data;
-    size_t *row = cur->i;
-    double sum = 0.0;
-    size_t nz = cur->nz;
-    // find sum of column
-    for (size_t i = 1; i < nz; i++)
-    {
-        sum += data[i];
-    }
-    // run only if at least 3 elements, including diagonal
-
-    
-    if (nz > 2)
-    {
-        
-        int size = nz - 1;
-
-        // create sample vector for sampling
-        Sample sample[size];
-        // cumulative sum
-        double cumsum[size];
-        double csum = 0.0;
-        for (size_t i = 0; i < size; i++)
-        {
-            sample[i].row = row[i + 1];
-            sample[i].data = data[i + 1];
-        }
-
-        // sort first based on value
-        std::sort(sample, sample + size, compare);
-        for (size_t i = 0; i < size; i++)
-        {
-            csum += sample[i].data;
-            cumsum[i] = csum;
-        }
-        
-        
-        // sampling
-        // random number and edge values
-        static thread_local std::mt19937 gen(std::random_device{}());
-        static thread_local std::mt19937 gen_discrete;
-        int num_sample = (size - 1);
-        for (int i = 0; i < num_sample; i++)
-        {
-            // sample based on discrete uniform
-            std::uniform_int_distribution<int> discrete_dis(0, size - 2);
-            int uniform = discrete_dis(gen_discrete);
-
-            // sample based on weight
-            std::uniform_real_distribution<> uniform_dis(0.0, 1.0);
-            double tar = cumsum[uniform];
-            double search_num = uniform_dis(gen) * (csum - tar) + tar;
-            double *weight = std::lower_bound (cumsum + uniform, cumsum + size, search_num);
-
-            
-            
-            // edge weight
-            size_t minl = std::min(sample[weight - cumsum].row, sample[uniform].row);
-            size_t maxl = std::max(sample[weight - cumsum].row, sample[uniform].row);
-
-            // if(uniform > size - 1 || (weight - cumsum) > size - 1)
-            // {
-
-            //     std::cout << "uniform: " << uniform << "\n";
-            //     std::cout << "prev: " << cumsum[size - 2] << "\n";
-            //     std::cout << "last: " << sample[size - 1].data << "\n";
-            //     std::cout << "other: " << cumsum[size - 1] << "\n";
-            //     std::cout << "search: " << search_num << "\n";
-            //     std::cout << "size: " << size << "\n";
-            //     assert(cumsum[size - 1] < search_num);
-            //     assert(false);
-            // }
-            
-
-            double setval = sample[uniform].data * (csum - cumsum[uniform]) / csum * (double)(size - 1) / (double)(num_sample);
-            if(minl >= l_bound && minl < r_bound)
-            {
-                gsl_spmatrix_set(lap.at(minl), maxl, 0, setval);
-            }
-            else
-            {
-                sep_edge.push_back(Edge_info(setval, maxl, minl));
-            }
-            
-        }
-        
-        
-    }
-    else
-    {
-        if(nz == 1)
-            sum = -data[0];
-    }
-       
-    
-    // update column
-    gsl_spmatrix_scale(cur, 1.0 / sum);
-    cur->data[0] = 1.0;
-    
-    return sum;
-}
-
-
-
-double random_sampling1(gsl_spmatrix *cur, std::vector<gsl_spmatrix *> &lap, size_t curcol, std::vector<Edge_info> &sep_edge, size_t l_bound, size_t r_bound)
-{
-
-    double *data = cur->data;
-    size_t *row = cur->i;
-    double sum = 0.0;
-    size_t nz = cur->nz;
-    // find sum of column
-    for (size_t i = 1; i < nz; i++)
-    {
-        sum += data[i];
-    }
-    // run only if at least 3 elements, including diagonal
-
-    
-    if (nz > 2)
-    {
-        
-        int size = nz - 1;
-
-        // create sample vector for sampling
-        Sample sample[size];
-        // cumulative sum
-        double cumsum[size];
-        double csum = 0.0;
-        for (size_t i = 0; i < size; i++)
-        {
-            sample[i].row = row[i + 1];
-            sample[i].data = data[i + 1];
-            csum += data[i + 1];
-            cumsum[i] = csum;
-        }
-        
-        
-        // sampling
-        // random number and edge values
-        static thread_local std::mt19937 gen(std::random_device{}());
-        int num_sample = size;
-        for (int i = 0; i < num_sample; i++)
-        {
-            // sample 1 based on weight
-            std::uniform_real_distribution<> uniform_dis(0.0, csum);
-            double *weight1 = std::lower_bound (cumsum, cumsum + size, uniform_dis(gen));
-
-            // sample 2 based on weight
-            double *weight2 = std::lower_bound (cumsum, cumsum + size, uniform_dis(gen));
-            
-            // edge weight
-            size_t minl = std::min(sample[weight1 - cumsum].row, sample[weight2 - cumsum].row);
-            size_t maxl = std::max(sample[weight1 - cumsum].row, sample[weight2 - cumsum].row);
-
-            if (minl == maxl)
-                continue;
-
-            if(minl >= l_bound && minl < r_bound)
-            {
-                
-                gsl_spmatrix_set(lap.at(minl), maxl, 0, csum / double((2 * num_sample)));
-            }
-            else
-            {
-                sep_edge.push_back(Edge_info(csum / double((2 * num_sample)), maxl, minl));
-            }
-            
-        }
-        
-        
-    }
-    else
-    {
-        if(nz == 1)
-           sum = -data[0];
-    }
-      
-
-
-    // update column
-    gsl_spmatrix_scale(cur, 1.0 / sum);
-    cur->data[0] = 1.0;
-    
-    return sum;
-}
-
-double random_sampling0(gsl_spmatrix *cur, std::vector<gsl_spmatrix *> &lap, size_t curcol, std::vector<Edge_info> &sep_edge, size_t l_bound, size_t r_bound)
+double random_sampling(edge*cur, std::vector<edge*> &lap, size_t curcol, std::vector<Edge_info> &sep_edge, size_t l_bound, size_t r_bound)
 {
 
     double *data = cur->data;
@@ -715,7 +512,7 @@ double random_sampling0(gsl_spmatrix *cur, std::vector<gsl_spmatrix *> &lap, siz
             if(minl >= l_bound && minl < r_bound)
             {
                 
-                gsl_spmatrix_set(lap.at(minl), maxl, 0, sample[i].data * (csum - cumsum[i]) / csum);
+                edge_set(lap.at(minl), maxl, 0, sample[i].data * (csum - cumsum[i]) / csum);
             }
             else
             {
@@ -728,7 +525,7 @@ double random_sampling0(gsl_spmatrix *cur, std::vector<gsl_spmatrix *> &lap, siz
     }
     
     // update column
-    gsl_spmatrix_scale(cur, 1.0 / sum);
+    edge_scale(cur, 1.0 / sum);
     cur->data[0] = 1.0;
     
     return sum;
@@ -736,7 +533,7 @@ double random_sampling0(gsl_spmatrix *cur, std::vector<gsl_spmatrix *> &lap, siz
 
 
 // uses int for some loops
-void linear_update(gsl_spmatrix *b)
+void linear_update(edge *b)
 {
     // sort
     size_t size = b->nz;
@@ -781,7 +578,7 @@ bool compare1 (Edge_info *i, Edge_info *j)
 }
 /* read in matlab array */
 
-void process_array(const Sparse_storage_input *input, std::vector<int> &result_idx, size_t depth, size_t target, std::vector<gsl_spmatrix *> &lap, size_t start, size_t total_size, int core_begin, int core_end)
+void process_array(const Sparse_storage_input *input, std::vector<int> &result_idx, size_t depth, size_t target, std::vector<edge*> &lap, size_t start, size_t total_size, int core_begin, int core_end)
 {
     int core_id = (core_begin + core_end) / 2;
     cpu_set_t cpuset;
@@ -801,7 +598,7 @@ void process_array(const Sparse_storage_input *input, std::vector<int> &result_i
         {
             size_t start = cpt[i];
             size_t last = cpt[i + 1];
-            gsl_spmatrix *one_col = gsl_spmatrix_alloc_nzmax(N, 1, 40); // CSC format
+            edge*one_col = edge_alloc_nzmax(N, 1, 40); // CSC format
             size_t count = 0;
             for (j = start; j < last; j++)
             {
@@ -812,7 +609,7 @@ void process_array(const Sparse_storage_input *input, std::vector<int> &result_i
                     count++;
                     continue;
                 }
-                gsl_spmatrix_set(one_col, rpt[j], 0, datapt[j]);
+                edge_set(one_col, rpt[j], 0, datapt[j]);
             }
             one_col->split = last - start - count;
             lap.at(i) = one_col;
@@ -841,7 +638,7 @@ void process_array(const Sparse_storage_input *input, std::vector<int> &result_i
         {
             size_t start = cpt[i];
             size_t last = cpt[i + 1];
-            gsl_spmatrix *one_col = gsl_spmatrix_alloc_nzmax(N, 1, 90); // CSC format
+            edge*one_col = edge_alloc_nzmax(N, 1, 90); // CSC format
             size_t count = 0;
             for (j = start; j < last; j++)
             {
@@ -853,7 +650,7 @@ void process_array(const Sparse_storage_input *input, std::vector<int> &result_i
                     continue;
                 }
                     
-                gsl_spmatrix_set(one_col, rpt[j], 0, datapt[j]);
+                edge_set(one_col, rpt[j], 0, datapt[j]);
             }
             one_col->split = last - start - count;
             lap.at(i) = one_col;
