@@ -88,7 +88,6 @@ double random_sampling2(gsl_spmatrix *cur, std::vector<gsl_spmatrix *> &lap, siz
 
 bool compare (Sample i, Sample j);
 /* clean up memory */
-//void clear_memory(std::vector<gsl_spmatrix *> &lap);
 void clear_memory(std::vector<gsl_spmatrix *> &lap, std::vector<int> &result_idx, size_t depth, size_t target, size_t start, size_t total_size, int core_begin, int core_end);
 
 int NUM_THREAD = 0;
@@ -132,7 +131,6 @@ void rchol_lap(Sparse_storage_input *input, Sparse_storage_output *output, std::
 
     // clear memory
     start = std::chrono::steady_clock::now();
-    //clear_memory(lap);
     clear_memory(lap, result_idx, 1, (size_t)(std::log2(NUM_THREAD) + 1), 0, result_idx.size() - 1, 0, NUM_THREAD);
     delete lap_val;
     end = std::chrono::steady_clock::now();
@@ -156,23 +154,6 @@ void rchol_lap(std::vector<size_t> &rowPtrA, std::vector<size_t> &colIdxA,
   sizeG = output.N;
 }
 
-
-
-
-/* clear memory */
-/*
-void clear_memory(std::vector<gsl_spmatrix *> &lap)
-{
-    size_t i;
-    // clear lap
-    for(i = 0; i < lap.size(); i++)
-    {
-        gsl_spmatrix_free(lap.at(i));
-    }
-    
-    delete &lap;
-}
-*/
 
 void clear_memory(std::vector<gsl_spmatrix *> &lap, std::vector<int> &result_idx, size_t depth, size_t target, size_t start, size_t total_size, int core_begin, int core_end)
 {
