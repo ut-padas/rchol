@@ -1,6 +1,9 @@
-#include "partition_and_ordering.hpp"
+#include "partition_and_order.hpp"
 #include "metis.h"
 #include "util.hpp"
+#include "timer.hpp"
+
+#include <thread>
 
 extern "C" {
 #include "amd.h"
@@ -33,10 +36,6 @@ struct Partition_info {
   }
   
 };
-
-size_t * metis_separator(const SparseCSR &A);
-
-Separator_info find_separator(const SparseCSR &A, int depth, int target);
 
 
 Partition_info determine_parition(size_t *sep_idx, size_t N){
@@ -93,131 +92,120 @@ SparseCSR get_submatrix(std::vector<size_t> &par, size_t *sep_idx, const SparseC
 }
 
 
-size_t * metis_separator(const SparseCSR &A)
-{
+size_t * metis_separator(const SparseCSR &A) {
 
+    idx_t nnz  = A.rowPtr[A.N] - A.N; // no diagonal
+    idx_t *vtx = (idx_t*)calloc(A.N + 1, sizeof(idx_t));
+    idx_t *adj = (idx_t*)calloc(nnz, sizeof(idx_t));
+    idx_t *sep = (idx_t*)calloc(A.N, sizeof(idx_t));
+
+    vtx[0] = 0;
+    idx_t  k = 0;
+    for (size_t i=0; i<A.N; i++) {
+      for (size_t j=A.rowPtr[i]; j<A.rowPtr[i+1]; j++) {
+        if (i != A.colIdx[j]) {
+          adj[k++] = A.colIdx[j];
+        }
+      }
+      vtx[i+1] = A.rowPtr[i+1] - i-1; // no diagonal
+    }
+
+    
     idx_t N = A.N;
-    size_t *cpt1 = A.rowPtr;
-    size_t *rpt1 = A.colIdx;
-    
-    size_t nz = cpt1[N];
-  
-    
-    idx_t *cpt = (idx_t*)calloc(N + 1, sizeof(idx_t));
-    idx_t *rpt = (idx_t*)calloc(nz, sizeof(idx_t));
-
-    //std::unique_ptr<idx_t> cpt(new idx_t(N + 1));
-    //std::unique_ptr<idx_t> rpt(new idx_t(nz));
-
-    for(idx_t i = 0; i < N+1; i++)
-    {
-        cpt[i] = (idx_t)(cpt1[i]);
-    }
-
-    for(idx_t i = 0; i < nz; i++)
-    {
-        rpt[i] = (idx_t)(rpt1[i]);
-    }
-    
-    // vertex separator
-
-    idx_t *vsep = (idx_t*)calloc(N, sizeof(idx_t));
-    //std::unique_ptr<idx_t> vsep(new idx_t(N));
     idx_t sepsize = 1;
-    METIS_ComputeVertexSeparator(&N, cpt, rpt, NULL, NULL, &sepsize, vsep);
+    METIS_ComputeVertexSeparator(&N, vtx, adj, NULL, NULL, &sepsize, sep);
     
-    
-    size_t *separatorpt = (size_t*)calloc(N, sizeof(size_t));
-    for(idx_t i = 0; i < N; i++)
-    {
-        separatorpt[i] = (size_t)(vsep[i]);
+
+    size_t *separatorpt = (size_t*)calloc(A.N, sizeof(size_t));
+    for(size_t i = 0; i < A.N; i++) {
+        separatorpt[i] = (size_t)(sep[i]);
     }
 
-    free(cpt);
-    free(rpt);
-    free(vsep);
+    free(vtx);
+    free(adj);
+    free(sep);
     
     return separatorpt;
 }
 
 
+void find_separator(const SparseCSR &A, std::vector<size_t> &order, std::vector<int> &partition, 
+    int nThreads, int core=0) {
 
+  cpu_set_t cpuset;
+  CPU_ZERO(&cpuset);
+  CPU_SET(core, &cpuset);
+  sched_setaffinity(0, sizeof(cpuset), &cpuset);
+  //std::cout<<"threads: "<<nThreads<<", core: "<<core<<std::endl;
 
-Separator_info find_separator(const SparseCSR &A, int depth, int target){
-
-  if(depth == target)
-  {
-    
-    std::vector<size_t> *val = new std::vector<size_t>();
-    val->push_back(A.N);
+  if (nThreads==1) {
+   
+    Timer t; t.start();
+    partition.push_back(A.N);
     
     // AMD ordering
-    std::vector<size_t> P(A.N);
-    amd_l_order(A.N, (long *)A.rowPtr, (long *)A.colIdx, (long *)P.data(), (double*) NULL, (double*) NULL);
+    order.resize(A.N);
+    amd_l_order(A.N, (long *)A.rowPtr, (long *)A.colIdx, (long *)order.data(),
+        (double*) NULL, (double*) NULL);
+    t.stop(); //std::cout<<"Leaf node time: "<<t.elapsed()<<" s\n";
     
-    std::vector<size_t> *p = new std::vector<size_t>(P);
-    //for(size_t i = 0; i < A.N; i++)
-      //p->push_back(i);
-    return Separator_info(p, val, NULL);
+  } else {
 
-  }
-  else if (A.N <= 1)
-  {
-
-    throw std::invalid_argument( "too many threads requested" );
-
-  }
-  else
-  {
+    Timer t; t.start();
     size_t *sep_idx = metis_separator(A);
+    t.stop(); //std::cout<<"Metis: "<<t.elapsed()<<" s\n";
+    
+    t.start();
     Partition_info par = determine_parition(sep_idx, A.N);
     SparseCSR newleft = get_submatrix(*(par.zero_partition), sep_idx, A);
     SparseCSR newright = get_submatrix(*(par.one_partition), sep_idx, A);
+    t.stop(); //std::cout<<"Submatrix: "<<t.elapsed()<<" s\n";
     
-    Separator_info linfo = find_separator(newleft, depth + 1, target);
-    Separator_info rinfo = find_separator(newright, depth + 1, target);
+    std::vector<size_t> lperm, rperm;
+    std::vector<int> lpart, rpart;
 
-    std::vector<size_t> *val = new std::vector<size_t>();
-    val->reserve(linfo.val->size() + rinfo.val->size() + 1);
-    val->insert( val->end(), linfo.val->begin(), linfo.val->end() );
-    val->insert( val->end(), rinfo.val->begin(), rinfo.val->end() );
-    val->push_back(par.second_partition->size());
+    std::thread T(find_separator, newleft, std::ref(lperm), std::ref(lpart), nThreads/2, core);
 
-    std::vector<size_t> *p = new std::vector<size_t>();
-    std::vector<size_t> l = reorder(*(par.zero_partition), *(linfo.p));
-    std::vector<size_t> r = reorder(*(par.one_partition), *(rinfo.p));
-    p->reserve(l.size() + r.size() + par.second_partition->size());
-    p->insert(p->end(), l.begin(), l.end());
-    p->insert(p->end(), r.begin(), r.end());
-    p->insert(p->end(), par.second_partition->begin(), par.second_partition->end());
+    //find_separator(newleft, lperm, lpart, nThreads/2, core);
+    find_separator(newright, rperm, rpart, nThreads/2, core+nThreads/2);
+
+    T.join();
+
+    t.start();
+    std::vector<size_t> lorder = reorder(*(par.zero_partition), lperm);
+    std::vector<size_t> rorder = reorder(*(par.one_partition), rperm);
+
+    order.clear();
+    order.reserve(lorder.size()+rorder.size()+par.second_partition->size());
+    order.insert(order.end(), lorder.begin(), lorder.end());
+    order.insert(order.end(), rorder.begin(), rorder.end());
+    order.insert(order.end(), par.second_partition->begin(), par.second_partition->end());
+  
+    partition.clear();
+    partition.reserve(lpart.size()+rpart.size()+1);
+    partition.insert(partition.end(), lpart.begin(), lpart.end());
+    partition.insert(partition.end(), rpart.begin(), rpart.end());
+    partition.push_back(par.second_partition->size());
 
 
-    delete linfo.p;
-    delete linfo.val;
-    delete rinfo.p;
-    delete rinfo.val;
     delete par.zero_partition;
     delete par.one_partition;
     delete par.second_partition;
+    t.stop(); //std::cout<<"After recursion: "<<t.elapsed()<<" s\n";
 
-    return Separator_info(p, val, NULL);
   }
 }
 
 
-void partition_and_ordering(const SparseCSR &A, int nThreads, 
+void partition_and_order(const SparseCSR &A, int nThreads, 
     std::vector<size_t> &order, std::vector<int> &partition) {
 
-  Separator_info separator = find_separator(A, 1, (size_t)(std::log2(nThreads) + 1));
-  std::copy(separator.p->begin(), separator.p->end(), std::back_inserter(order));
-  partition.resize( separator.val->size()+1, 0 );
-  for(size_t i = 0; i < separator.val->size(); i++)
-  {
-    partition[i+1] = separator.val->at(i) + partition[i];
-  }
-  partition.back()++; // artifitial vertex
-  delete separator.p;
-  delete separator.val;
+  std::vector<int> part;
+  find_separator(A, order, part, nThreads);
+
+  partition.resize(nThreads*2, 0);
+  std::partial_sum(part.begin(), part.end(), partition.begin()+1);
+  partition.back()++;
 }
 
 
