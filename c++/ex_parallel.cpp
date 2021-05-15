@@ -43,7 +43,8 @@ int main(int argc, char *argv[]) {
   SparseCSR G;
   std::vector<size_t> P;
   std::vector<int> S;
-  rchol(A, G, P, S, threads);
+  std::string filename = "order_n"+std::to_string(n)+"_t"+std::to_string(threads)+".txt";;
+  rchol(A, G, P, S, threads, filename);
   t.stop();
   std::cout<<std::endl;
   std::cout<<"Setup time: "<<t.elapsed()<<std::endl;

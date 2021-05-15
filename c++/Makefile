@@ -41,7 +41,7 @@ all: $(EXE)
 driver: ex_laplace.o $(OBJS)
 	icpc $^ -o $@ $(CFLAG) $(LDFLAG)
 	
-driver_parallel: ex_laplace_parallel.o $(OBJS)
+driver_parallel: ex_parallel.o $(OBJS)
 	icpc $^ -o $@ $(CFLAG) $(LDFLAG)
 	
 run: $(EXE)
