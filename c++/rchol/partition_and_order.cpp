@@ -1,5 +1,6 @@
 #include "partition_and_order.hpp"
 #include "metis.h"
+//#include "mtmetis.h"
 #include "util.hpp"
 #include "timer.hpp"
 
@@ -92,6 +93,7 @@ SparseCSR get_submatrix(std::vector<size_t> &par, size_t *sep_idx, const SparseC
 }
 
 
+#if 1
 size_t * metis_separator(const SparseCSR &A) {
 
     idx_t nnz  = A.rowPtr[A.N] - A.N; // no diagonal
@@ -128,6 +130,45 @@ size_t * metis_separator(const SparseCSR &A) {
     return separatorpt;
 }
 
+#else
+
+size_t * metis_separator(const SparseCSR &A) {
+    
+    mtmetis_vtx_type N = A.N;
+    mtmetis_adj_type nnz  = A.rowPtr[A.N] - A.N; // no diagonal
+    mtmetis_adj_type *vtx = (mtmetis_adj_type*)calloc(N + 1, sizeof(mtmetis_adj_type));
+    mtmetis_vtx_type *adj = (mtmetis_vtx_type*)calloc(nnz, sizeof(mtmetis_vtx_type));
+    mtmetis_pid_type *sep = (mtmetis_pid_type*)calloc(N, sizeof(mtmetis_pid_type));
+
+    vtx[0] = 0;
+    size_t  k = 0;
+    for (size_t i=0; i<A.N; i++) {
+      for (size_t j=A.rowPtr[i]; j<A.rowPtr[i+1]; j++) {
+        if (i != A.colIdx[j]) {
+          adj[k++] = A.colIdx[j];
+        }
+      }
+      vtx[i+1] = A.rowPtr[i+1] - i-1; // no diagonal
+    }
+
+    
+    mtmetis_wgt_type sepsize = 1;
+    MTMETIS_ComputeVertexSeparator(&N, vtx, adj, NULL, NULL, &sepsize, sep);
+    
+
+    size_t *separatorpt = (size_t*)calloc(A.N, sizeof(size_t));
+    for(size_t i = 0; i < A.N; i++) {
+        separatorpt[i] = (size_t)(sep[i]);
+    }
+
+    free(vtx);
+    free(adj);
+    free(sep);
+    
+    return separatorpt;
+}
+#endif
+
 
 void find_separator(const SparseCSR &A, std::vector<size_t> &order, std::vector<int> &partition, 
     int nThreads, int core=0) {
@@ -147,13 +188,13 @@ void find_separator(const SparseCSR &A, std::vector<size_t> &order, std::vector<
     order.resize(A.N);
     amd_l_order(A.N, (long *)A.rowPtr, (long *)A.colIdx, (long *)order.data(),
         (double*) NULL, (double*) NULL);
-    t.stop(); //std::cout<<"Leaf node time: "<<t.elapsed()<<" s\n";
+    t.stop(); std::cout<<"Leaf node time: "<<t.elapsed()<<" s\n";
     
   } else {
 
     Timer t; t.start();
     size_t *sep_idx = metis_separator(A);
-    t.stop(); //std::cout<<"Metis: "<<t.elapsed()<<" s\n";
+    t.stop(); std::cout<<"Metis: "<<t.elapsed()<<" s\n";
     
     t.start();
     Partition_info par = determine_parition(sep_idx, A.N);

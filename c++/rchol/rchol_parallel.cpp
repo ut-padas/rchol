@@ -57,13 +57,14 @@ void rchol(const SparseCSR &A, SparseCSR &G, std::vector<size_t> &permutation,
       ofile << x << " ";
     ofile.close();
   }
-  t.stop(); std::cout<<"find separator: "<<t.elapsed()<<" s\n";
+  t.stop(); 
+  std::cout<<"\nfind separator: "<<t.elapsed()<<" s\n";
   
   t.start();
   std::vector<size_t> rowPtr, colIdx;
   std::vector<double> val;
   reorder(A, rowPtr, colIdx, val, permutation);
-  t.stop(); std::cout<<"permute matrix: "<<t.elapsed()<<" s\n";
+  t.stop(); std::cout<<"permute matrix: "<<t.elapsed()<<" s\n\n";
 
 
   t.start();

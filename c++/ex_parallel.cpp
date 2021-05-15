@@ -4,9 +4,10 @@
 #include <cstring>
 #include "sparse.hpp" // define CSR sparse matrix type
 #include "rchol_parallel.hpp"
+#include "laplace_3d.hpp"
+#include "timer.hpp"
 #include "util.hpp"
 #include "pcg.hpp"
-#include "timer.hpp"
 
 
 int main(int argc, char *argv[]) {
@@ -22,8 +23,10 @@ int main(int argc, char *argv[]) {
       nitr = atoi(argv[i+1]);
   }
   std::cout<<std::setprecision(3);
+  Timer t; 
  
   // SDDM matrix from 3D constant Poisson equation
+  t.start();
   SparseCSR A;
   A = laplace_3d(n); // n x n x n grid
   //A.read_mkt_file("/home1/06108/chaochen/matrices/parabolic_fem.mtx");
@@ -37,13 +40,14 @@ int main(int argc, char *argv[]) {
   int N = A.size();
   std::vector<double> b(N); 
   rand(b);
+  t.stop(); std::cout<<"Create/read matrix time: "<<t.elapsed()<<" s\n";
 
   // compute preconditioner (multithread) and solve
-  Timer t; t.start();
+  t.start();
   SparseCSR G;
   std::vector<size_t> P;
   std::vector<int> S;
-  std::string filename = "order_n"+std::to_string(n)+"_t"+std::to_string(threads)+".txt";;
+  std::string filename = "orders/order_n"+std::to_string(n)+"_t"+std::to_string(threads)+".txt";;
   rchol(A, G, P, S, threads, filename);
   t.stop();
   std::cout<<std::endl;

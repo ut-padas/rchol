@@ -115,11 +115,7 @@ void rchol_lap(Sparse_storage_input *input, Sparse_storage_output *output, std::
 
 
     // clear memory
-    start = std::chrono::steady_clock::now();
     clear_memory(lap, partition, 0, int(std::log2(thread)), 0, partition.size() - 1, 0, thread);
-    end = std::chrono::steady_clock::now();
-    std::cout << "free time: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()/1000. << " s\n";
-
 }
 
 

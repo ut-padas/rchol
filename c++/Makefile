@@ -5,18 +5,25 @@ OBJS := $(filter-out ex_laplace.o ex_laplace_parallel.o csr/driver.o,$(OBJS))
 
 #CFLAG = -Wall -g -Irchol/ -Irchol_lap/ -Iutil/ -Icsr/
 CFLAG = -Wall -O3 -xHost -Irchol/ -Irchol_lap/ -Iutil/ -Icsr/
-#LDFLAG = -mkl
-#LDFLAG = -mkl=parallel
 LDFLAG = -lmkl_intel_ilp64 -mkl
 
 
-METIS_INC = $(TACC_METIS_INC)
-METIS_LIB = $(TACC_METIS_LIB)
+METIS_INC = /home1/06108/chaochen/libs/metis_64bit/include
+METIS_LIB = /home1/06108/chaochen/libs/metis_64bit/build/Linux-x86_64/libmetis
+
+#MTMETIS_INC = /home1/06108/chaochen/libs/mt-metis-0.7.2/include
+#MTMETIS_LIB = /home1/06108/chaochen/libs/mt-metis-0.7.2/build/Linux-x86_64/lib
+
+#METIS_INC = $(TACC_METIS_INC)
+#METIS_LIB = $(TACC_METIS_LIB)
 
 # METIS is required for parallel
 ifneq ($(and $(METIS_INC),$(METIS_LIB)),)
 CFLAG += -I$(METIS_INC) -I$(AMD_INC)
 LDFLAG += -L$(METIS_LIB) -lmetis -L$(AMD_LIB) -lamd
+else ifneq ($(and $(MTMETIS_INC),$(MTMETIS_LIB)),)
+CFLAG += -I$(MTMETIS_INC) -I$(AMD_INC)
+LDFLAG += -L$(MTMETIS_LIB) -lmtmetis -L$(AMD_LIB) -lamd
 else
 POBJ = rchol/find_separator.o rchol/rchol_parallel.o
 OBJS := $(filter-out $(POBJ),$(OBJS))

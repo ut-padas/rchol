@@ -29,8 +29,6 @@ struct Rearrange {
 };
 
 
-SparseCSR laplace_3d(int);
-
 void reorder(const SparseCSR &A, const std::vector<size_t> &permutation, SparseCSR &);
 
 void reorder(const SparseCSR &A, std::vector<size_t> &rowPtr, std::vector<size_t> &colIdx, 
