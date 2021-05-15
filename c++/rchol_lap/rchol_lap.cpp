@@ -9,7 +9,8 @@
 #include "spvec.hpp"
 
 
-typedef double real;
+typedef float real;
+//typedef double real;
 typedef spvec<int, real> edges;
 
 
@@ -310,7 +311,7 @@ recursive_calculation(std::vector<int> &partition, int depth, std::vector<edges>
 }
 
 
-void coalesce(std::vector<edges> &lap, size_t *cpt, size_t *rpt, double *datapt, double *diagpt)
+void coalesce(std::vector<edges> &lap, size_t *cpt, size_t *rpt, double *datapt, real *diagpt)
 {
     size_t counter = 0;
     int  m = lap.size() - 1;
