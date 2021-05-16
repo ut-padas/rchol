@@ -35,6 +35,41 @@ void SparseCSR::init(const std::vector<size_t> &rowPtrA, const std::vector<size_
   this->ownMemory = mem;
 }
 
+void SparseCSR::read_csr_file(std::string filename) {
+  std::ifstream matFile(filename.c_str(), std::ifstream::binary);
+  assert(matFile.is_open() && "Can't open matrix file");
+
+  size_t N, nnz;
+  matFile.read((char*)&N, sizeof(size_t));
+  matFile.read((char*)&nnz, sizeof(size_t));
+  assert(N>0 && nnz>N);
+
+  this->N = N;
+  this->ownMemory = true;
+  this->rowPtr = new size_t[N+1]();
+  this->colIdx = new size_t[nnz];
+  this->val = new double[nnz];
+
+  for (size_t i=0; i<N+1; i++)
+    matFile.read((char*)&rowPtr[i], sizeof(size_t));
+  for (size_t i=0; i<nnz; i++)
+    matFile.read((char*)&colIdx[i], sizeof(size_t));
+  //for (size_t i=0; i<nnz; i++)
+    //matFile.read((char*)&val[i], sizeof(double));
+  for (size_t i=0; i<N; i++) {
+    for (size_t j=rowPtr[i]; j<rowPtr[i+1]; j++) {
+      size_t idx = colIdx[j];
+      matFile.read((char*)&val[j], sizeof(double));
+      if (idx != i) assert(val[j] < 0);
+    }
+  }
+
+  matFile.close();
+  std::cout<<"[Read sparse matrix] N: "<<N
+           <<", # nonezero: "<<nnz
+           <<std::endl;
+}
+
 void SparseCSR::read_mkt_file(std::string filename) {
   std::ifstream matFile(filename.c_str());
   assert(matFile.is_open() && "Can't open matrix file");

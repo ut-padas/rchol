@@ -1,14 +1,6 @@
 #include "pcg.hpp"
 
-#define MKL_INT size_t
-#include "mkl_spblas.h"
-#include "mkl.h"
-#include "mkl_types.h"
-
-typedef sparse_matrix_t SpMat;
-
 #include <iostream>
-#include <chrono>
 #include <cassert>
 #include <cmath>
 #include <future>
@@ -79,6 +71,7 @@ void pcg::iteration(const SpMat *Amat, const double *b, SpMat *Gmat,
     copy(z, p);
     
     nitr = 0; // iteration count
+    int stag = 0; // check stagation
     double a1, a2, rz, nr;
     double nb = norm(b);
     double err = nb * tolerance;
@@ -89,11 +82,15 @@ void pcg::iteration(const SpMat *Amat, const double *b, SpMat *Gmat,
       rz = dot(r, z);
       a1 = rz / dot(p, q);
 
+      // check stagnation
+      if (std::abs(a1)*norm(p) < norm(x.data())*1e-15) stag ++;
+      else stag = 0;
+
       axpy(a1, p, x.data());
       axpy(-a1, q, r);
 
       nr = norm(r);
-      if (nr < err) break;
+      if (nr < err || stag >= 3) break;
 
       precond_solve(Gmat, r, z);
 
@@ -478,22 +475,24 @@ void pcg::lower_solve_csc_async(double *b, int depth, int target,
         auto time_s = std::chrono::steady_clock::now();
         int  C0 = S.at(start);
         int  C1 = S.at(start + total_size);
+        assert(C0>=0 && C1>=0);
         for (int c = C0; c < C1; c++)
         {  
             assert(c == G.colIdx[ G.rowPtr[c] ]);
             b[c] /= G.val[ G.rowPtr[c] ];
-            for (int i = G.rowPtr[c]+1; i < G.rowPtr[c+1]; i++) 
+            for (size_t i = G.rowPtr[c]+1; i < G.rowPtr[c+1]; i++) 
             {
                 int    r = G.colIdx[i];
                 double v = G.val[i];
                   
                 b[r] -= b[c] * v;
+                if (r <= c) std::cout<<"\n\tr="<<r<<", c="<<c<<std::endl;
                 assert(r > c);
             }
         }
         auto time_e = std::chrono::steady_clock::now();
         auto elapsed = time_e - time_s;
-        int  cpu_num = sched_getcpu();
+        //int  cpu_num = sched_getcpu();
         //std::cout << "depth: " << depth 
           //<< " thread " << std::this_thread::get_id() 
           //<< " cpu: " << cpu_num 
@@ -535,7 +534,7 @@ void pcg::lower_solve_csc_async(double *b, int depth, int target,
         {  
             assert(c == G.colIdx[ G.rowPtr[c] ]);
             b[c] /= G.val[ G.rowPtr[c] ];
-            for (int i = G.rowPtr[c]+1; i < G.rowPtr[c+1]; i++) 
+            for (size_t i = G.rowPtr[c]+1; i < G.rowPtr[c+1]; i++) 
             {
                 int    r = G.colIdx[i];
                 double v = G.val[i];
@@ -546,7 +545,7 @@ void pcg::lower_solve_csc_async(double *b, int depth, int target,
         }
         auto time_e = std::chrono::steady_clock::now();
         auto elapsed = time_e - time_s;
-        int cpu_num = sched_getcpu();
+        //int cpu_num = sched_getcpu();
         //std::cout << "depth(separator): " << depth 
           //<< " thread " << std::this_thread::get_id() 
           //<< " cpu: " << cpu_num  
@@ -579,7 +578,7 @@ void pcg::upper_solve(double *b, int depth, int target,
         for (int r = R1-1; r >= R0; r--)
         {  
             assert(r == G.colIdx[ G.rowPtr[r] ]);
-            for (int i = G.rowPtr[r]+1; i < G.rowPtr[r+1]; i++) 
+            for (size_t i = G.rowPtr[r]+1; i < G.rowPtr[r+1]; i++) 
             {
                 int    c = G.colIdx[i];
                 double v = G.val[i];
@@ -589,8 +588,8 @@ void pcg::upper_solve(double *b, int depth, int target,
             b[r] /= G.val[ G.rowPtr[r] ];
         }
         auto time_e = std::chrono::steady_clock::now();
-        auto elaNed = time_e - time_s;
-        int  cpu_num = sched_getcpu();
+        auto elapsed = time_e - time_s;
+        //int  cpu_num = sched_getcpu();
         //std::cout << "depth: " << depth 
           //<< " thread " << std::this_thread::get_id() 
           //<< " cpu: " << cpu_num 
@@ -606,7 +605,7 @@ void pcg::upper_solve(double *b, int depth, int target,
         for (size_t r = R1-1; r >= R0; r--)
         {
             assert(r == G.colIdx[ G.rowPtr[r] ]);
-            for (int i = G.rowPtr[r]+1; i < G.rowPtr[r+1]; i++) 
+            for (size_t i = G.rowPtr[r]+1; i < G.rowPtr[r+1]; i++) 
             {
                 int    c = G.colIdx[i];
                 double v = G.val[i];
@@ -616,9 +615,9 @@ void pcg::upper_solve(double *b, int depth, int target,
             b[r] /= G.val[ G.rowPtr[r] ];
         }
         auto time_e = std::chrono::steady_clock::now();
-        auto elaNed = time_e - time_s;
+        auto elapsed = time_e - time_s;
         
-        int cpu_num = sched_getcpu();
+        //int cpu_num = sched_getcpu();
         //std::cout << "depth(separator): " << depth 
           //<< " thread " << std::this_thread::get_id() 
           //<< " cpu: " << cpu_num  

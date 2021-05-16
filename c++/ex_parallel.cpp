@@ -28,13 +28,15 @@ int main(int argc, char *argv[]) {
   // SDDM matrix from 3D constant Poisson equation
   t.start();
   SparseCSR A;
-  A = laplace_3d(n); // n x n x n grid
+  //A = laplace_3d(n); // n x n x n grid
   //A.read_mkt_file("/home1/06108/chaochen/matrices/parabolic_fem.mtx");
   //A.read_mkt_file("/home1/06108/chaochen/matrices/ecology2.mtx");
   //A.read_mkt_file("/home1/06108/chaochen/matrices/apache2.mtx");
   //A.read_mkt_file("/home1/06108/chaochen/matrices/G3_circuit.mtx");
   //A.read_mkt_file("/home1/06108/chaochen/matrices/vc_laplace_128_1e5.mtx");
   //A.read_mkt_file("/home1/06108/chaochen/matrices/aniso_laplace_128.mtx");
+  A.read_csr_file("/work2/06108/chaochen/frontera/matrices/vc_laplace_128_1e5.csr");
+  //A.show("A");
 
   // random RHS
   int N = A.size();
