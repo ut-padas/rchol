@@ -9,8 +9,8 @@
 #include "spvec.hpp"
 
 
-typedef float real;
-//typedef double real;
+//typedef float real;
+typedef double real;
 typedef spvec<int, real> edges;
 
 
