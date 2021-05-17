@@ -1,3 +1,4 @@
+% adopted from https://github.com/klho/FLAM/blob/master/compat/gausspdf.m
 % GAUSSPDF  Normal probability density function.
 %
 %    This is a compatibility wrapper for NORMPDF in case MATLAB's Statistics
