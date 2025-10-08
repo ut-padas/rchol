@@ -6,6 +6,9 @@ authors:
 - family-names: "Chen"
   given-names: "Chao"
   orcid: "https://orcid.org/0000-0002-5385-3651"
+- family-names: "Biros"
+  given-names: "George"
+  orcid: "https://orcid.org/0000-0002-0033-3994"
 title: "rchol"
 version: 1.0.0
 doi: 10.5281/zenodo.1234
