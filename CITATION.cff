@@ -1,0 +1,13 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Liang"
+  given-names: "Tianyu"
+- family-names: "Chen"
+  given-names: "Chao"
+  orcid: "https://orcid.org/0000-0002-5385-3651"
+title: "rchol"
+version: 1.0.0
+doi: 10.5281/zenodo.1234
+date-released: 2025-10-08
+url: "https://github.com/ut-padas/rchol"
